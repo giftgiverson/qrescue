@@ -1,6 +1,10 @@
-from .my_env import\
-    rescue_share, rescue_folder, rescued_file, rescue_folder_prefix,\
-    data_folder, data_file, data_backup
+"""
+Manage file access
+"""
 
-__all__ = ['rescue_share', 'rescue_folder', 'rescued_file', 'rescue_folder_prefix',
-           'data_folder', 'data_file', 'data_backup']
+from .my_env import\
+    RESCUE_FOLDER, rescue_folder, rescued_file, RESCUE_FOLDER_PREFIX,\
+    DATA_FOLDER, data_file, data_backup
+
+__all__ = ['RESCUE_FOLDER', 'rescue_folder', 'rescued_file', 'RESCUE_FOLDER_PREFIX',
+           'DATA_FOLDER', 'data_file', 'data_backup']
