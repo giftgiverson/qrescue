@@ -1,0 +1,193 @@
+def get_file_old(folder):
+    return [(folder[0], re.search('\.([^\.]+)\.7z$', n).group(1), os.path.getsize(os.path.join(folder[1], n)), n) for n in os.listdir(folder[1]) if re.search('\.[^\.]+\.7z$', n)]
+
+def get_orig_size(path):
+    out = subprocess.check_output(['7z', 'l', path])
+    return re.search('(\d+)\s+\d+\s+', out).group(1)
+
+def get_orig_size(path):
+	try:
+		out = subprocess.check_output(['7z', 'l', path])
+		return re.search('(\d+)\s+\d+\s+', out).group(1)
+	except:
+		return '-' + str(os.path.getsize(path))
+		
+def get_file(folder, file_name):
+	full_path = os.path.join(folder[1], file_name)
+	try:
+		out = subprocess.check_output(['7z', 'l', full_path])
+		f_date_time_str, f_size = re.search('(\d+-\d+-\d+\s+\d+:\d+:\d+)\D+(\d+)', out).groups()
+		f_date_time_dt = datetime.datetime.strptime(f_date_time_str, '%Y-%m-%d %H:%M:%S')
+		f_date_time = time.mktime(f_date_time_dt.timetuple())
+	except:
+		f_date_time = os.path.getctime(full_path)
+		f_size = '-' + str(os.path.getsize(full_path))
+	return ('_', folder[0], re.search('\.([^\.]+)\.7z$', file_name).group(1), f_size, str(f_date_time), re.search('(.*)\.7z$', file_name).group(1))
+
+def get_files(folder):
+    return [get_file(folder, n) for n in os.listdir(folder[1]) if re.search('\.[^\.]+\.7z$', n)]
+
+def scan_for_files(folders):
+	with open('../CACHEDEV2_DATA/shaib2/affected_files.csv', 'a') as f:
+		for folder in folders:
+			print folder
+			for file in get_files(folder):
+				f.write('%s\n' % ', '.join(file))
+
+def get_file_histogram(files):
+	ext = {}
+	for file in files:
+		cext = file[2]
+		if not ext.has_key(cext):
+			ext[cext] = {0:0, -1:40000000}
+		size = file[3]
+		if ext[cext][0] < size:
+			ext[cext][0] = size
+		if ext[cext][-1] > size:
+			ext[cext][-1] = size
+		if not ext[cext].has_key(size):
+			ext[cext][size] = 0
+		ext[cext][size] += 1
+	return ext
+	
+def write_ext_ranges(ext, exts):
+	with open('../CACHEDEV2_DATA/shaib2/ext_range.csv', 'w') as file:
+		for ext_name, histogram in exts.items():
+			total = str(sum([len(ext[e]) for e in exts[ext_name]]))
+			smin = str(min([ext[e][-1] for e in exts[ext_name]]))
+			smax = str(max([ext[e][0] for e in exts[ext_name]]))
+			file.write(', '.join([ext_name, total, smin, smax]) + '\n')
+		
+
+===================================
+
+import time, datetime, os, re, subprocess
+
+def parse_folder(line):
+     parts = line.split(',')
+     return (parts[0], ','.join(parts[1:]).strip())
+
+# folders, array or tuple(ID, path)
+def load_folders():
+	folders = []
+	with open('../CACHEDEV2_DATA/shaib2/affected_folders.csv') as f:
+		for line in f:
+			folders.append(parse_folder(line))
+	return folders
+	
+# files, array of tuple(state, folder_id, orig_extension, size, ctime, name without .7z at the end)
+def parse_file(line):
+     parts = line.split(',')
+     return tuple([part.strip() for part in parts[:3]] + [int(parts[3]), float(parts[4]), ','.join(parts[5:]).strip()])
+
+def load_files():
+	files = []
+	with open('../CACHEDEV2_DATA/shaib2/affected_files.csv') as f:
+		for line in f:
+			files.append(parse_file(line))
+	return files
+
+def load_from_shaib2(file_name):
+	with open('../CACHEDEV2_DATA/shaib2/' + file_name + '.pyon') as file:
+		return eval(file.read())
+
+# extension histogram, dictionary orig_extension to [dictionary of actual-size to count (special cases: -1 to minimal size, 0 to maximal size)]
+def load_ext_histogram():
+	return load_from_shaib2('ext_histogram')
+
+# extension_names, dicitonary of extension.lower() to array of orig_extension
+def load_ext_names():
+	return load_from_shaib2('ext_vers')
+
+folders = load_folders()
+files = load_files()
+ext_histogram = load_ext_histogram()
+ext_names = load_ext_names()
+
+def scan_recup_dir(id, matched_file, unmatched_file):
+	id_path = '/mnt/rescue-share/recup_dir.' + str(id)
+	m_size = 0
+	u_size = 0
+	for f_name in os.listdir(id_path):
+		f_path = os.path.join(id_path, f_name)
+		f_ext = re.search('\.([^\.]+)$', f_path).group(1).lower()
+		f_size = os.path.getsize(f_path)
+		match_exts = []
+		match_count = 0
+		if ext_names.has_key(f_ext):
+			for ext in ext_names[f_ext]:
+				if ext_histogram[ext].has_key(f_size):
+					match_exts.append(ext)
+					match_count+=ext_histogram[ext][f_size]
+		report = ', '.join([str(match_count), '|'.join(match_exts), str(f_size), str(id), f_name]) + '\n'
+		if match_count:
+			matched_file.write(report)
+			m_size += f_size
+		else:
+			unmatched_file.write(report)
+			u_size += f_size
+	return (m_size, u_size)
+	
+def scan_recup(id_from, id_to):
+	with open('../CACHEDEV2_DATA/shaib2/matched.csv', 'a') as matched_file:
+		with open('../CACHEDEV2_DATA/shaib2/unmatched.csv', 'a') as unmatched_file:
+			with open('../CACHEDEV2_DATA/shaib2/scan_report.csv', 'a') as report_file:
+				for id in range(id_from, id_to + 1):
+					m_size = 0
+					u_size = 0
+					m_s, u_s = scan_recup_dir(id, matched_file, unmatched_file)
+					m_size += m_s
+					u_size += u_s
+					report = ', '.join(['recup_dir.' + str(id), str(m_size), str(u_size)]) + '\n'
+					print report
+					report_file.write(report)
+
+def parse_match(line):
+	parts = line.split(',')
+	return (int(parts[0]), parts[1].strip(), int(parts[2]), parts[3].strip(), ','.join(parts[4:]).strip())
+
+
+# matches, array of tuple(count, |-delimited extensions, size, recup_dir_id, file name), last two fields may repeat as CSV in the last field
+def load_matches(type):
+	matches = []
+	with open('../CACHEDEV2_DATA/shaib2/' + type + 'matched.csv') as f:
+		for line in f:
+			matches.append(parse_match(line))
+	return matches
+
+def squash_matches(matches):
+	squashed = {}
+	for match in matches:
+		key = match[1] + '.' + str(match[2])
+		if not squashed.has_key(key):
+			squashed[key] = list(match)
+		else:
+			existing = squashed[key]
+			existing[0] += match[0]
+			existing += list(match[3:])
+	return [tuple(v) for v in squashed.values()]
+
+def sort_squashed(squashed):
+	with open('../CACHEDEV2_DATA/shaib2/single_matched.csv', 'w') as single_file:
+		with open('../CACHEDEV2_DATA/shaib2/multi_matched.csv', 'w') as multi_file:
+			for match in squashed:
+				line = ', '.join([str(v) for v in match]) + '\n'
+				if match[0] == 1:
+					single_file.write(line)
+				else:
+					multi_file.write(line)
+
+#NEEDS SUDO
+def remove_unmatched(unmatched):
+	last_id = -1
+	cur_dir = ''
+	for um in unmatched:
+		if last_id != um[3]:
+			last_id = um[3]
+			cur_dir = '/mnt/rescue-share/recup_dir.' + um[3]
+			print cur_dir
+		path = os.path.join(cur_dir, um[4])
+		if os.path.exists(path):
+			os.remove(path)
+		else:
+			print 'MISSING: ' + path
