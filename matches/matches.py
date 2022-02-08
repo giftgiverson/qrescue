@@ -1,12 +1,13 @@
 from my_env import rescue_share, data_file, rescue_folder, rescue_folder_prefix, data_backup
-import os
-import re
-import affected
+from os.path import join as pjoin, exists, getsize
+from os import listdir, remove
+from re import search as regex_match
+from affected import load_ext
 
 
 class _RecupScanner:
     def __init__(self):
-        self.ext_histogram, self.ext_names = affected.load_ext()
+        self.ext_histogram, self.ext_names = load_ext()
 
     def scan_recup(self, id_from, id_to):
         m_size = 0
@@ -31,10 +32,10 @@ class _RecupScanner:
         id_path = rescue_folder(str(folder_id))
         m_size = 0
         u_size = 0
-        for f_name in os.listdir(id_path):
-            f_path = os.path.join(id_path, f_name)
-            f_ext: str = re.search('\\.([^.]+)$', f_path).group(1).lower()
-            f_size = os.path.getsize(f_path)
+        for f_name in listdir(id_path):
+            f_path = pjoin(id_path, f_name)
+            f_ext: str = regex_match('\\.([^.]+)$', f_path).group(1).lower()
+            f_size = getsize(f_path)
             match_ext_names = []
             match_count = 0
             if f_ext in self.ext_names:
@@ -78,18 +79,18 @@ def _remove_unmatched(unmatched):
             last_id = cur_id
             cur_dir = rescue_folder(cur_id)
             print(cur_dir)
-        path = os.path.join(cur_dir, f_name)
-        if os.path.exists(path):
-            os.remove(path)
+        f_path = pjoin(cur_dir, f_name)
+        if exists(f_path):
+            remove(f_path)
             # print('REMOVING: ' + path)
         else:
-            print('MISSING: ' + path)
+            print('MISSING: ' + f_path)
 
 
 def _detect_next_range():
     to_id = max([int(m.group(1))
-                 for m in [re.search(rescue_folder_prefix + r'\.(\d+)', f)
-                           for f in os.listdir(rescue_share)] if m]
+                 for m in [regex_match(rescue_folder_prefix + r'\.(\d+)', f)
+                           for f in listdir(rescue_share)] if m]
                 ) - 1
     from_id = max([int(m[3][0][0]) for m in load_matches('')]) + 1
     return from_id, to_id

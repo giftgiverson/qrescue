@@ -1,12 +1,13 @@
 from my_env import rescued_file, data_file, data_backup
-import os
-import re
-import hashlib
+from os.path import exists
+from os import remove
+from re import search as regex_match
+from hashlib import md5
 from matches import encode_match, load_matches
 
 
 def _get_md5(path):
-    hash_md5 = hashlib.md5()
+    hash_md5 = md5()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             hash_md5.update(chunk)
@@ -102,7 +103,7 @@ def _validate_batch(base, batch, v_dups):
                 if control[1]:
                     base_name = control[1][0]
                     print('REINSTATING: ' + base_name)
-                    base = ','.join(re.search(r'\.(\d+)\\([^,]+)', base_name).groups())
+                    base = ','.join(regex_match(r'\.(\d+)\\([^,]+)', base_name).groups())
                 continue
             if base:
                 v_dups.write(', '.join([control[1][0], base]))
@@ -133,8 +134,8 @@ def _remove_duplicates(valid_duplicates):
         if cur_base != base:
             cur_base = base
             print(base)
-        if os.path.exists(dup[0]):
-            os.remove(dup[0])
+        if exists(dup[0]):
+            remove(dup[0])
             # print('REMOVING: ' + path)
         else:
             print('MISSING: ' + dup[0])
@@ -143,7 +144,7 @@ def _remove_duplicates(valid_duplicates):
 def _derefernce_duplicates(valid_duplicates, from_id):
     dups = {}
     for dup in valid_duplicates:
-        folder, file = tuple(re.search(r'(\d+)\\(.*)', dup[0]).groups())
+        folder, file = tuple(regex_match(r'(\d+)\\(.*)', dup[0]).groups())
         if folder not in dups:
             dups[folder] = []
         dups[folder].append(file)
