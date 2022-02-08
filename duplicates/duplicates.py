@@ -1,31 +1,36 @@
-from my_env import rescued_file, data_file, data_backup
+"""
+Implement handling duplicate rescued files which
+"""
+
 from os.path import exists
 from os import remove
 from re import search as regex_match
 from hashlib import md5
+from my_env import rescued_file, data_file, data_backup
 from matches import encode_match, load_matches
 
 
 def _get_md5(path):
     hash_md5 = md5()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
+    with open(path, "rb") as file:
+        for chunk in iter(lambda: file.read(4096), b""):
             hash_md5.update(chunk)
     return hash_md5.hexdigest()
 
 
 def _squash_duplicates_line(duplicates_file, mm_line, from_id):
-    if len(mm_line[3]) == 1 or not any([match for match in mm_line[3] if int(mm_line[3][0][0]) >= from_id]):
+    if len(mm_line[3]) == 1\
+            or not any(match for match in mm_line[3] if int(mm_line[3][0][0]) >= from_id):
         return mm_line[3]
     unique = {}
     for match in mm_line[3]:
         path = rescued_file(match[0], match[1])
-        md5 = _get_md5(path)
-        if md5 in unique:
-            print('SAME MD5: ' + path + ' ' + str(unique[md5]))
-            duplicates_file.write(path + ', ' + ', '.join(unique[md5]) + '\n')
+        checksum = _get_md5(path)
+        if checksum in unique:
+            print('SAME MD5: ' + path + ' ' + str(unique[checksum]))
+            duplicates_file.write(path + ', ' + ', '.join(unique[checksum]) + '\n')
         else:
-            unique[md5] = match
+            unique[checksum] = match
     return unique.values()
 
 
@@ -43,22 +48,22 @@ def _squash_duplicates(multi_matched, from_id):
 # duplicates, array of tuple(duplicate's path, base dir, base name)
 def _load_duplicates(d_type):
     dups = []
-    with data_file('' + d_type + 'duplicates.csv') as f:
-        for line in f:
-            dups.append(tuple([v.strip() for v in line.split(',')]))
+    with data_file('' + d_type + 'duplicates.csv') as file:
+        for line in file:
+            dups.append(tuple(v.strip() for v in line.split(',')))
     return dups
 
 
 def _get_sub_groups(data, group):
     top_match = -1
-    for i in range(0, len(data)):
+    for i, datum in enumerate(data):
         for j in range(0, i):
             if data[j][0] <= top_match:
                 continue
-            if data[i][1] == data[j][1]:
-                data[i][0] = data[j][0]
+            if datum[1] == data[j][1]:
+                datum[0] = data[j][0]
             else:
-                data[i][0] = j
+                datum[0] = j
     sub_groups = {}
     for datum in data:
         key = ','.join([group[0], str(datum[0])])
@@ -90,6 +95,7 @@ def _validate_groups(groups):
 def _validate_batch(base, batch, v_dups):
     print(base)
     targets = [(base, None)] + [(dup[0], dup) for dup in batch]
+    # pylint: disable=consider-using-with
     target_controls = [(open(f, 'rb'), dup) for f, dup in targets]
     target_groups = {'0': target_controls}
     new_groups = _validate_groups(target_groups)
@@ -163,6 +169,10 @@ def _derefernce_duplicates(valid_duplicates, from_id):
 
 
 def update_and_remove_duplicates(from_id):
+    """
+    Detect and remove binary-identical recovered files, leaving only one
+    :param from_id: Start of recovery folder range not yet checked for duplicates
+    """
     matches = load_matches('multi_')
     print('UPDATING DUPLICATES\n================')
     _squash_duplicates(matches, from_id)
