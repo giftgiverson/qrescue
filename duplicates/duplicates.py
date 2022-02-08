@@ -1,7 +1,7 @@
+from my_env import rescued_file, data_file, data_backup
 import os
 import re
 import hashlib
-import datetime
 from matches import encode_match, load_matches
 
 
@@ -18,7 +18,7 @@ def _squash_duplicates_line(duplicates_file, mm_line, from_id):
         return mm_line[3]
     unique = {}
     for match in mm_line[3]:
-        path = os.path.join('f:/share/recup_dir.' + match[0], match[1])
+        path = rescued_file(match[0], match[1])
         md5 = _get_md5(path)
         if md5 in unique:
             print('SAME MD5: ' + path + ' ' + str(unique[md5]))
@@ -29,8 +29,8 @@ def _squash_duplicates_line(duplicates_file, mm_line, from_id):
 
 
 def _squash_duplicates(multi_matched, from_id):
-    with open('w:/squashed_multi_matched.csv', 'w', encoding='utf8') as squashed_file:
-        with open('w:/duplicates.csv', 'w', encoding='utf8') as duplicates_file:
+    with data_file('squashed_multi_matched.csv', 'w') as squashed_file:
+        with data_file('duplicates.csv', 'w') as duplicates_file:
             for mm_line in multi_matched:
                 unique = _squash_duplicates_line(duplicates_file, mm_line, from_id)
                 sq_line = list(mm_line)
@@ -42,7 +42,7 @@ def _squash_duplicates(multi_matched, from_id):
 # duplicates, array of tuple(duplicate's path, base dir, base name)
 def _load_duplicates(d_type):
     dups = []
-    with open('w:/' + d_type + 'duplicates.csv', encoding='utf8') as f:
+    with data_file('' + d_type + 'duplicates.csv') as f:
         for line in f:
             dups.append(tuple([v.strip() for v in line.split(',')]))
     return dups
@@ -113,9 +113,9 @@ def _validate_batch(base, batch, v_dups):
 def _validate_duplicates(raw_duplicates):
     cur_base = ''
     cur_batch = []
-    with open('w:/valid_duplicates.csv', 'w', encoding='utf8') as v_dups:
+    with data_file('valid_duplicates.csv', 'w') as v_dups:
         for dup in raw_duplicates:
-            base = os.path.join('f:/share/recup_dir.' + dup[1], dup[2])
+            base = rescued_file(dup[1], dup[2])
             if base != cur_base:
                 if cur_batch:
                     _validate_batch(cur_base, cur_batch, v_dups)
@@ -148,10 +148,9 @@ def _derefernce_duplicates(valid_duplicates, from_id):
             dups[folder] = []
         dups[folder].append(file)
     last_folder = '0'
-    old_matched_name = 'w:/matched' + datetime.datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S') + '.csv'
-    os.rename('w:/matched.csv', old_matched_name)
-    with open('w:/matched.csv', 'w', encoding='utf8') as m_new:
-        with open(old_matched_name, encoding='utf8') as m_old:
+    backup = data_backup('matched.csv')
+    with data_file('matched.csv', 'w') as m_new:
+        with data_file(backup) as m_old:
             for line in m_old:
                 folder, file = tuple([v.strip() for v in line.split(',')][3:])
                 if int(folder) < from_id or folder not in dups or file not in dups[folder]:

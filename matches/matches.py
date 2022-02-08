@@ -1,7 +1,7 @@
+from my_env import rescue_share, data_file, rescue_folder, rescue_folder_prefix, data_backup
 import os
 import re
 import affected
-import datetime
 
 
 class _RecupScanner:
@@ -11,9 +11,9 @@ class _RecupScanner:
     def scan_recup(self, id_from, id_to):
         m_size = 0
         u_size = 0
-        with open('w:/matched.csv', 'a', encoding='utf8') as matched_file:
-            with open('w:/unmatched.csv', 'a', encoding='utf8') as unmatched_file:
-                with open('w:/scan_report.csv', 'a', encoding='utf8') as report_file:
+        with data_file('matched.csv', 'a') as matched_file:
+            with data_file('unmatched.csv', 'a') as unmatched_file:
+                with data_file('scan_report.csv', 'a') as report_file:
                     for folder_id in range(id_from, id_to + 1):
                         m_s, u_s = self._scan_recup_dir(folder_id, matched_file, unmatched_file)
                         m_size += m_s
@@ -28,7 +28,7 @@ class _RecupScanner:
               f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, a_size]])}GB')
 
     def _scan_recup_dir(self, folder_id, matched_file, unmatched_file):
-        id_path = 'f:/share/recup_dir.' + str(folder_id)
+        id_path = rescue_folder(str(folder_id))
         m_size = 0
         u_size = 0
         for f_name in os.listdir(id_path):
@@ -63,7 +63,7 @@ def _parse_match(line):
 # matches, array of tuple(count, |-delimited extensions, size, array of tuple (recup_dir_id, file name))
 def load_matches(match_type):
     matches = []
-    with open('w:/' + match_type + 'matched.csv', encoding='utf8') as f:
+    with data_file(match_type + 'matched.csv') as f:
         for line in f:
             matches.append(_parse_match(line))
     return matches
@@ -76,7 +76,7 @@ def _remove_unmatched(unmatched):
         cur_id, f_name = um[3][0]
         if last_id != cur_id:
             last_id = cur_id
-            cur_dir = 'f:/share/recup_dir.' + cur_id
+            cur_dir = rescue_folder(cur_id)
             print(cur_dir)
         path = os.path.join(cur_dir, f_name)
         if os.path.exists(path):
@@ -87,7 +87,10 @@ def _remove_unmatched(unmatched):
 
 
 def _detect_next_range():
-    to_id = max([int(m.group(1)) for m in [re.search(r'recup_dir.(\d+)', f) for f in os.listdir('f:/share')] if m]) - 1
+    to_id = max([int(m.group(1))
+                 for m in [re.search(rescue_folder_prefix + r'\.(\d+)', f)
+                           for f in os.listdir(rescue_share)] if m]
+                ) - 1
     from_id = max([int(m[3][0][0]) for m in load_matches('')]) + 1
     return from_id, to_id
 
@@ -100,8 +103,7 @@ def update_matched_remove_unmatched(is_last=False):
     _RecupScanner().scan_recup(from_id, to_id)
     print('REMOVING UNMATCHED\n================')
     _remove_unmatched(load_matches('un'))
-    os.rename('w:/unmatched.csv',
-              'w:/unmatched_removed' + datetime.datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S') + '.csv')
+    data_backup('unmatched.csv', '_removed')
     return from_id
 
 
@@ -123,8 +125,8 @@ def encode_match(match):
 
 
 def _sort_squashed(squashed):
-    with open('w:/single_matched.csv', 'w', encoding='utf8') as single_file:
-        with open('w:/multi_matched.csv', 'w', encoding='utf8') as multi_file:
+    with data_file('single_matched.csv', 'w') as single_file:
+        with data_file('multi_matched.csv', 'w') as multi_file:
             for match in squashed:
                 line = encode_match(match)
                 if match[0] == 1:

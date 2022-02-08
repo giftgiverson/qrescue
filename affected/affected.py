@@ -1,3 +1,6 @@
+from my_env import data_file
+
+
 def _parse_folder(line):
     parts = line.split(',')
     return parts[0], ','.join(parts[1:]).strip()
@@ -6,7 +9,7 @@ def _parse_folder(line):
 # folders, array or tuple(ID, path)
 def _load_folders():
     read_folders = []
-    with open('w:/affected_folders.csv', encoding='utf8') as f:
+    with data_file('affected_folders.csv') as f:
         for line in f:
             read_folders.append(_parse_folder(line))
     return read_folders
@@ -20,14 +23,14 @@ def _parse_file(line):
 
 def _load_files():
     read_files = []
-    with open('w:/affected_files.csv', encoding='utf8') as f:
+    with data_file('affected_files.csv') as f:
         for line in f:
             read_files.append(_parse_file(line))
     return read_files
 
 
 def _load_from_w(file_name):
-    with open('w:/' + file_name + '.pyon', encoding='utf8') as file:
+    with data_file(file_name + '.pyon') as file:
         return eval(file.read())
 
 
