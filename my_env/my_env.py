@@ -12,7 +12,7 @@ RESCUE_FOLDER = 'f:/share'
 RESCUE_FOLDER_PREFIX = 'recup_dir'
 ARCHIVE_FOLDER = 'f:/archive'
 
-NAS_TO_PC = {'./shaib/': 'z:/', ' ./Multimedia': 'y:/'}
+NAS_TO_PC = {'./shaib/': 'z:/', './Multimedia/': 'y:/'}
 
 
 def rescue_folder(f_id):
@@ -65,7 +65,7 @@ def affected_folder(folder):
     """
     path = folder[1]
     for nas_path, pc_path in NAS_TO_PC.items():
-        path.replace(nas_path, pc_path)
+        path = path.replace(nas_path, pc_path)
     return path
 
 
@@ -74,8 +74,8 @@ def archive_match(match):
     Moves match file to archive folder
     :param match: match
     """
-    archive_folder = pjoin(RESCUE_FOLDER, RESCUE_FOLDER_PREFIX + match[3])
+    archive_folder = pjoin(ARCHIVE_FOLDER, '.'.join([RESCUE_FOLDER_PREFIX, match[3][0][0]]))
     if not exists(archive_folder):
         mkdir(archive_folder)
-    match_path = rescued_file(match[3], match[4])
+    match_path = rescued_file(match[3][0][0], match[3][0][1])
     move(match_path, archive_folder)

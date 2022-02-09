@@ -2,7 +2,9 @@
 Implements handling of affected files
 """
 
-from my_env import data_file
+from my_env import data_file, data_backup
+
+AFFECTED_FILES_CSV = 'affected_files.csv'
 
 
 def _parse_folder(line):
@@ -28,7 +30,7 @@ def _parse_file(line):
 
 def _load_files():
     read_files = []
-    with data_file('affected_files.csv') as file:
+    with data_file(AFFECTED_FILES_CSV) as file:
         for line in file:
             read_files.append(_parse_file(line))
     return read_files
@@ -67,3 +69,14 @@ def load_ext():
     :return: (histogram, names)
     """
     return _load_ext_histogram(), _load_ext_names()
+
+
+def update_files(affected_files):
+    """
+    Update affected files (backing up previous version)
+    :param affected_files: updated affected files
+    """
+    data_backup(AFFECTED_FILES_CSV)
+    with data_file(AFFECTED_FILES_CSV, 'w') as file:
+        for affected in affected_files:
+            file.write(', '.join(str(v) for v in affected))
