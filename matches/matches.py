@@ -139,7 +139,7 @@ def update_matched_remove_unmatched(is_last=False):
 def _squash_matches(matches):
     squashed = {}
     for match in matches:
-        key = match[1] + '.' + str(match[2])
+        key = get_match_key(match)
         if key not in squashed:
             squashed[key] = list(match)
         else:
@@ -147,6 +147,15 @@ def _squash_matches(matches):
             existing[0] += match[0]
             existing[3] += match[3]
     return [tuple(v) for v in squashed.values()]
+
+
+def get_match_key(match):
+    """
+    Calculates the key of a match
+    :param match: match
+    :return: match key "extension.size"
+    """
+    return match[1] + '.' + str(match[2])
 
 
 def encode_match(match):

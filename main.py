@@ -4,12 +4,13 @@ Entry point for QRescue automation
 
 from matches import update_matched_remove_unmatched, squash_matched
 from duplicates import update_and_remove_duplicates
+from recovery import Recovery
 
 
 def update(is_last=False):
     """
     Update match indices, remove irrelevant files
-    :param is_last: (default='False' Should the last available folder be used
+    :param is_last: (default='False') Should the last available folder be used
     """
     from_id = update_matched_remove_unmatched(is_last)
     squash_matched()
@@ -21,13 +22,15 @@ if __name__ == '__main__':
     # === PHASE 2: Index matching, and remove irrelevant, PhotoRec recovered files
     # Use while PhotoRec is still running, to track status
     # and reduce the total disc space needed for this process
-    update()
+    # update()
+
     # Use if PhotoRec has finished running
     # update(True)
 
+    recovery = Recovery()
     # === PHASE 3: Recovering single-matched files 'blindly'
     # pylint: disable=fixme
-    # TODO
+    recovery.recover_single_matched()
 
     # === PHASE 4: Recovering multi-matched files interactively, by type
     # pylint: disable=fixme
