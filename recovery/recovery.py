@@ -2,11 +2,10 @@
 Implement managing recovery operations
 """
 
-from os import path, remove, utime
-from shutil import copy
+from os import path
 from matches import load_matches, get_match_key
-from affected import load_affected, update_files
-from my_env import affected_folder, rescued_file, archive_match, data_file
+from affected import load_files, update_files
+from my_env import rescued_file, archive_match, data_file
 
 
 # pylint: disable=too-few-public-methods
@@ -15,18 +14,15 @@ class Recovery:
     Perform file recovery
     """
     def __init__(self):
-        folders, files = load_affected()
-        self.folders = {folder[0]: folder for folder in folders}
-        self.files = [list(file) for file in files]
-        self.keyed_files = self._make_keyed_files()
+        self._files = load_files()
+        self._keyed_files = self._make_keyed_files()
 
     def _make_keyed_files(self):
         keyed_files = {}
-        for file in self.files:
-            key = file[2]+'.'+str(file[3])
-            if key not in keyed_files:
-                keyed_files[key] = []
-            keyed_files[key].append(file)
+        for file in self._files:
+            if file.key not in keyed_files:
+                keyed_files[file.key] = []
+            keyed_files[file.key].append(file)
         return keyed_files
 
     def recover_single_matched(self):
@@ -43,48 +39,34 @@ class Recovery:
                 affected = self._get_single_un_recovered(self._get_affected(match))
                 if affected and self._recover(affected, match, 0, recovered_file):
                     archive_match(match)
-        update_files(self.files)
+        update_files(self._files)
         print(f'RECOVERED {len(matches)} Single Matched')
 
     @staticmethod
-    def _get_single_un_recovered(affected):
-        if len(affected) != 1:
-            print(f'EXPECTED SINGLE MATCH, FOUND: {affected}')
+    def _get_single_un_recovered(affected_list):
+        if len(affected_list) != 1:
+            print(f'EXPECTED SINGLE MATCH, FOUND: {affected_list}')
             return None
-        if affected[0][0] != "_":
-            print(f'ALREADY RECOVERED: {affected}')
+        if affected_list[0].is_matched:
+            print(f'ALREADY RECOVERED: {affected_list[0]}')
             return None
-        return affected[0]
+        return affected_list[0]
 
     def _get_affected(self, match):
         key = get_match_key(match)
-        return self.keyed_files[key] if key in self.keyed_files else []
+        return self._keyed_files[key] if key in self._keyed_files else []
 
     def _recover(self, affected, match, submatch, recovered_file):
-        affected_path, match_path = self._make_paths(affected, match, submatch)
-        if affected_path:
-            self._replace_7z(affected, affected_path, match_path)
-        affected[0] = submatch
-        recovered_file.write(', '.join([str(v) for v in affected]) + '\n')
-        return affected_path
-
-    def _make_paths(self, affected, match, submatch):
-        affected_path = path.join(affected_folder(self.folders[affected[1]]), affected[5])
-        match_path = rescued_file(match[3][submatch][0], match[3][submatch][1])
-        if not path.exists(match_path):
-            print(f'WARNING: MATCH FILE ALREADY ARCHIVED: {match_path},'
-                  f' for {affected} at {affected_path}')
-            return None, None
-        return affected_path, match_path
+        match_path = self._make_path(affected, match, submatch)
+        if match_path:
+            affected.apply_match(match_path, submatch)
+        recovered_file.write(affected.serialize() + '\n')
+        return match_path
 
     @staticmethod
-    def _replace_7z(affected, affected_path, match_path):
-        if path.exists(affected_path):
-            print(f'WARNING: AFFECTED EXISTS: {affected_path}')
-        copy(match_path, affected_path)
-        utime(affected_path, (affected[4], affected[4]))
-        z_path = affected_path + '.7z'
-        if not path.exists(z_path):
-            print(f'WARNING: 7z MISSING: {z_path}')
-        else:
-            remove(affected_path + '.7z')
+    def _make_path(affected, match, submatch):
+        match_path = rescued_file(match[3][submatch][0], match[3][submatch][1])
+        if not path.exists(match_path):
+            print(f'WARNING: MATCH FILE ALREADY ARCHIVED: {match_path}, for {affected}')
+            return None
+        return match_path

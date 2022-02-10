@@ -57,7 +57,7 @@ def data_backup(f_name, label=''):
     return backup_name
 
 
-def affected_folder(folder):
+def nas_to_pc(folder):
     """
     Gets PC-side paths for those read on NAS
     :param folder: NAS-side folder path
