@@ -3,8 +3,8 @@ Manage file access
 """
 
 from .my_env import\
-    RESCUE_FOLDER, rescue_folder, rescued_file, RESCUE_FOLDER_PREFIX,\
-    DATA_FOLDER, data_file, data_backup, nas_to_pc, archive_match
+    rescue_folder, last_rescue_folder, rescued_file, data_file, data_backup, nas_to_pc,\
+    archive_folder
 
-__all__ = ['RESCUE_FOLDER', 'rescue_folder', 'rescued_file', 'RESCUE_FOLDER_PREFIX',
-           'DATA_FOLDER', 'data_file', 'data_backup', 'nas_to_pc', 'archive_match']
+__all__ = ['rescue_folder', 'last_rescue_folder', 'rescued_file', 'data_file', 'data_backup',
+           'nas_to_pc', 'archive_folder']

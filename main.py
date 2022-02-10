@@ -29,7 +29,6 @@ if __name__ == '__main__':
 
     recovery = Recovery()
     # === PHASE 3: Recovering single-matched files 'blindly'
-    # pylint: disable=fixme
     recovery.recover_single_matched()
 
     # === PHASE 4: Recovering multi-matched files interactively, by type

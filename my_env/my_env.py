@@ -2,10 +2,10 @@
 Implement managing file access
 """
 
-from os.path import join as pjoin, exists
-from os import rename, mkdir
+from os.path import join as pjoin
+from os import rename, listdir
+from re import search as regex_match
 from datetime import datetime
-from shutil import move
 
 DATA_FOLDER = 'w:/'
 RESCUE_FOLDER = 'f:/share'
@@ -23,6 +23,16 @@ def rescue_folder(f_id):
     """
     return pjoin(RESCUE_FOLDER, RESCUE_FOLDER_PREFIX + '.' + f_id)
 
+
+def last_rescue_folder():
+    """
+    :return: (int) largest rescue folder ID
+    """
+    max([int(m.group(1))
+         for m in [regex_match(RESCUE_FOLDER_PREFIX + r'\.(\d+)', f)
+                   for f in listdir(RESCUE_FOLDER)]
+         if m]
+        )
 
 def rescued_file(f_id, f_name):
     """
@@ -69,13 +79,10 @@ def nas_to_pc(folder):
     return path
 
 
-def archive_match(match):
+def archive_folder(recup_id):
     """
-    Moves match file to archive folder
-    :param match: match
+    Construct archive folder path
+    :param recup_id: folder ID
+    :return: (string) archive folder path
     """
-    archive_folder = pjoin(ARCHIVE_FOLDER, '.'.join([RESCUE_FOLDER_PREFIX, match[3][0][0]]))
-    if not exists(archive_folder):
-        mkdir(archive_folder)
-    match_path = rescued_file(match[3][0][0], match[3][0][1])
-    move(match_path, archive_folder)
+    return pjoin(ARCHIVE_FOLDER, '.'.join([RESCUE_FOLDER_PREFIX, recup_id]))

@@ -36,7 +36,7 @@ class AffectedFolder:
 def load_folders(refresh=False):
     """
     Load affected folders
-    :bool refresh: should the folders be re-read from file
+    :param refresh: should the folders be re-read from file
     :return: dictionary of {folder_key: AffectedFolder}
     """
     if refresh or not load_folders.folders:

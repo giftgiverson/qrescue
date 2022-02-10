@@ -3,9 +3,9 @@ Implement managing recovery operations
 """
 
 from os import path
-from matches import load_matches, get_match_key
+from matches import load_matches
 from affected import load_files, update_files
-from my_env import rescued_file, archive_match, data_file
+from my_env import data_file
 
 
 # pylint: disable=too-few-public-methods
@@ -29,16 +29,17 @@ class Recovery:
         """
         Recover single-matched files
         """
-        matches = load_matches('single_')
+        matches = load_matches('single_', True)
         last_folder = 0
         with data_file('recovered.csv', 'a') as recovered_file:
             for match in matches:
-                if last_folder != match[3][0][0]:
-                    last_folder = match[3][0][0]
+                cur_folder = match.matches[0].id
+                if last_folder != cur_folder:
+                    last_folder = cur_folder
                     print(last_folder)
                 affected = self._get_single_un_recovered(self._get_affected(match))
                 if affected and self._recover(affected, match, 0, recovered_file):
-                    archive_match(match)
+                    match.matches[0].arcive()
         update_files(self._files)
         print(f'RECOVERED {len(matches)} Single Matched')
 
@@ -53,7 +54,7 @@ class Recovery:
         return affected_list[0]
 
     def _get_affected(self, match):
-        key = get_match_key(match)
+        key = match.key
         return self._keyed_files[key] if key in self._keyed_files else []
 
     def _recover(self, affected, match, submatch, recovered_file):
@@ -65,7 +66,7 @@ class Recovery:
 
     @staticmethod
     def _make_path(affected, match, submatch):
-        match_path = rescued_file(match[3][submatch][0], match[3][submatch][1])
+        match_path = match.matches[submatch].path
         if not path.exists(match_path):
             print(f'WARNING: MATCH FILE ALREADY ARCHIVED: {match_path}, for {affected}')
             return None

@@ -1,130 +1,150 @@
 """
-Implement matching rescued files to affected files
+Handle rescued files
 """
 
 from os.path import join as pjoin, exists
-from os import listdir, remove
-from re import search as regex_match
+from os import remove, mkdir
+from shutil import move
 
-from my_env import RESCUE_FOLDER, data_file, rescue_folder, RESCUE_FOLDER_PREFIX, data_backup
-
-from .recup_scanner import _RecupScanner
-
-
-def _parse_match(line):
-    parts = line.split(',')
-    return \
-        int(parts[0]), parts[1].strip(), int(parts[2]), \
-        [tuple(p.strip() for p in parts[n * 2 - 1:n * 2 + 1])
-         for n in range(2, 1 + len(parts) >> 1)]
+from my_env import data_file, rescue_folder, archive_folder
+from my_misc import static_vars
 
 
-def load_matches(match_type):
+class Recuperated:
+    """
+    Recuperated file
+    """
+    # pylint: disable=invalid-name
+    @property
+    def id(self):
+        """
+        :return: (string) id of recuperated folder
+        """
+        return self._id
+
+    @property
+    def path(self):
+        """
+        :return: (string) path to recuperated file
+        """
+        return self._path
+
+    def __init__(self, detail):
+        self._id, self._name = detail
+        self._path = pjoin(rescue_folder(self._id), self._name)
+
+    def archive(self):
+        """
+        Moves match file to archive folder
+        """
+        folder = archive_folder(self._id)
+        if not exists(folder):
+            mkdir(folder)
+        move(self.path, folder)
+
+    def remove(self):
+        """
+        Removes match file
+        """
+        if exists(self._path):
+            remove(self._path)
+            # print('REMOVING: ' + path)
+        else:
+            print('MISSING: ' + self._path)
+
+    def serialize(self):
+        """
+        :return: (string) serialization
+        """
+        return ','.join([self._id, self._name])
+
+
+class Matching:
+    """
+    Matching recuperated files
+    """
+    @property
+    def key(self):
+        """
+        :return: match key
+        """
+        return self._key
+
+    @property
+    def affected_count(self):
+        """
+        :return: number of affected files matched
+        """
+        return self._affected_count
+
+    @property
+    def is_single(self):
+        """
+        :return: (bool) is this a single-match
+        """
+        return self._affected_count == 1 and len(self._matches) == 1
+
+    @property
+    def is_paired(self):
+        """
+        :return: (bool) is there a match for every affected file with this key
+        """
+        return self._affected_count == len(self._matches)
+
+    @property
+    def matches(self):
+        """
+        :return: matching recuperated files
+        """
+        return self._matches
+
+    def __init__(self, line):
+        parts = line.split(',')
+        self._head = ','.join(parts[1:3])
+        ext = [e.lower() for e in parts[1].split('|')][0]
+        self._key = '.'.join([ext, parts[2]])
+        self._matches = \
+            [Recuperated(p.strip() for p in parts[n * 2 - 1:n * 2 + 1])
+             for n in range(2, 1 + len(parts) >> 1)]
+        self._affected_count = int(int(parts[0] / len(self._matches)))
+
+    def append(self, matched):
+        """
+        Append matches of the same key
+        :param matched: matches of the same key
+        """
+        if matched.key == self._key:
+            self._matches.append(matched.matches)
+
+    def serialize(self):
+        """
+        Serializes this object to a string line
+        :return: (string) serialization (without newline)
+        """
+        return ', '.join(
+            [str(self._affected_count * len(self._matches)), self._head]
+            + [match.serialize() for match in self._matches])
+
+    def clone(self):
+        """
+        Create a clone with no reference to this original
+        :return: Matching clone
+        """
+        return Matching(self.serialize())
+
+
+@static_vars(matches_by_type={})
+def load_matches(match_type, refresh=False):
     """
     Load match objects from file
     :param match_type: match file prefix
-    :return: array of tuple(
-        count, |-delimited extensions, size,
-        array of tuple (recup_dir_id, file name))
+    :param refresh: should the matches be re-read from file
+    :return: array of Matching
     """
-    matches = []
-    with data_file(match_type + 'matched.csv') as file:
-        for line in file:
-            matches.append(_parse_match(line))
-    return matches
-
-
-def _remove_unmatched(unmatched):
-    last_id = -1
-    cur_dir = ''
-    for non_matching in unmatched:
-        cur_id, f_name = non_matching[3][0]
-        if last_id != cur_id:
-            last_id = cur_id
-            cur_dir = rescue_folder(cur_id)
-            print(cur_dir)
-        f_path = pjoin(cur_dir, f_name)
-        if exists(f_path):
-            remove(f_path)
-            # print('REMOVING: ' + path)
-        else:
-            print('MISSING: ' + f_path)
-
-
-def _detect_next_range():
-    to_id = max([int(m.group(1))
-                 for m in [regex_match(RESCUE_FOLDER_PREFIX + r'\.(\d+)', f)
-                           for f in listdir(RESCUE_FOLDER)] if m]
-                ) - 1
-    from_id = max([int(m[3][0][0]) for m in load_matches('')]) + 1
-    return from_id, to_id
-
-
-def update_matched_remove_unmatched(is_last=False):
-    """
-    Scan new rescued files, match to affected files by extension and size, and delete rescued
-     files which don't match any affected file
-    :param is_last: (optional, default=False) Did PhotoRec finish running, so we can safely
-     include the last recovery folder?
-    :return: ID of first folder with new files
-    """
-    from_id, to_id = _detect_next_range()
-    if is_last:
-        to_id += 1
-    print(f'UPDATING MATCHED: from {from_id} to {to_id}\n====================')
-    _RecupScanner().scan_recup(from_id, to_id)
-    print('REMOVING UNMATCHED\n================')
-    _remove_unmatched(load_matches('un'))
-    data_backup('unmatched.csv', '_removed')
-    return from_id
-
-
-def _squash_matches(matches):
-    squashed = {}
-    for match in matches:
-        key = get_match_key(match)
-        if key not in squashed:
-            squashed[key] = list(match)
-        else:
-            existing = squashed[key]
-            existing[0] += match[0]
-            existing[3] += match[3]
-    return [tuple(v) for v in squashed.values()]
-
-
-def get_match_key(match):
-    """
-    Calculates the key of a match
-    :param match: match
-    :return: match key "extension.size"
-    """
-    return match[1] + '.' + str(match[2])
-
-
-def encode_match(match):
-    """
-    Encodes a match object to string
-    :param match: match
-    :return: string encoding match
-    """
-    return ', '.join([str(v) for v in match[:3]] + [a for b in match[3] for a in b]) + '\n'
-
-
-def _sort_squashed(squashed):
-    with data_file('single_matched.csv', 'w') as single_file:
-        with data_file('multi_matched.csv', 'w') as multi_file:
-            for match in squashed:
-                line = encode_match(match)
-                if match[0] == 1:
-                    single_file.write(line)
-                else:
-                    multi_file.write(line)
-
-
-def squash_matched():
-    """
-    Squashes matches by detecting single-matches, and grouping multi-matches by affected
-    """
-    matches = load_matches('')
-    squashed = _squash_matches(matches)
-    _sort_squashed(squashed)
+    if refresh or match_type not in load_matches.matches_by_type:
+        matches = []
+        with data_file(match_type + 'matched.csv') as file:
+            for line in file:
+                matches.append(Matching(line))
+        load_matches.matches_by_type[match_type] = matches
+    return load_matches.matches_by_type[match_type]

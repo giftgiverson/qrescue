@@ -89,7 +89,7 @@ class AffectedFile:
 def load_files(refresh=False):
     """
     Load affected files
-    :bool refresh: should the files be re-read from file
+    :param refresh: should the files be re-read from file
     :return: list of AffectedFile
     """
     if refresh or not load_files.files:

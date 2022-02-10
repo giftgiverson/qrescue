@@ -2,8 +2,8 @@
 Match rescued files to affected files
 """
 
-from .matches import update_matched_remove_unmatched, load_matches, squash_matched, encode_match,\
-    get_match_key
+from .matches import load_matches
+from .squash import squash_matched
+from .update import update_matched_remove_unmatched
 
-__all__ = ['update_matched_remove_unmatched', 'load_matches', 'squash_matched', 'encode_match',
-           'get_match_key']
+__all__ = ['load_matches', 'squash_matched', 'update_matched_remove_unmatched']
