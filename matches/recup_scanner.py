@@ -31,12 +31,7 @@ class _RecupScanner:
                         self._report_folder(folder_id, report_file, m_s, u_s)
                         m_size += m_s
                         u_size += u_s
-
-        print(f'== Matched {m_size / u_size * 100:.2f}%,'
-              f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, u_size]])}GB')
-        a_size = self._index.total_size
-        print(f'== Recovering up to {m_size / a_size * 100:.4f}%,'
-              f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, a_size]])}GB')
+        self._print_summary(m_size, u_size)
 
     def _scan_recup_dir(self, folder_id, matched_file, unmatched_file):
         id_path = rescue_folder(str(folder_id))
@@ -59,6 +54,13 @@ class _RecupScanner:
                 unmatched_file.write(report)
                 u_size += f_size
         return m_size, u_size
+
+    def _print_summary(self, m_size, u_size):
+        print(f'== Matched {m_size / u_size * 100:.2f}%,'
+              f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, u_size]])}GB')
+        a_size = self._index.total_size
+        print(f'== Recovering up to {m_size / a_size * 100:.4f}%,'
+              f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, a_size]])}GB')
 
     @staticmethod
     def _report_folder(folder_id, report_file, m_s, u_s):

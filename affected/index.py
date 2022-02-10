@@ -11,35 +11,33 @@ def _load_from_w(file_name):
         return eval(file.read())
 
 
-class _Extension:
+class _Option:
     @property
-    def options(self):
+    def count(self):
         """
         :return: extension options dictionary (size: count)
         """
-        return self._joined
+        return self._count
 
+    @property
     def names(self):
         """
         :return: list of extension names
         """
         return self._names
 
-    def __init__(self, names, histogram):
-        self._joined = self._join(names, histogram)
-        self._names = names
+    def __init__(self):
+        self._count = 0
+        self._names = []
 
-    @staticmethod
-    def _join(names, histogram):
-        joined = {}
-        for name in names:
-            for size, count in histogram[name].items():
-                if size <= 0:
-                    continue
-                if size not in joined:
-                    joined[size] = 0
-                joined[size] += count
-        return joined
+    def add(self, name, count):
+        """
+        Add name and count
+        :param name: extension name
+        :param count: option count
+        """
+        self._names.append(name)
+        self._count += count
 
 
 # pylint: disable=too-few-public-methods
@@ -55,6 +53,7 @@ class Index:
         return self._total_size
 
     def __init__(self):
+        # options is a dictionary of ext: (dictionary of size: _Option)
         self._options, self._total_size = self._make_options_and_sum()
 
     def get_matches(self, extension_name, size):
@@ -66,9 +65,9 @@ class Index:
                 optional-match count, '|' joined extension names (on None if extension is unknown)
         """
         low = extension_name.lower()
-        extension = self._options[low] if low in self._options else None
-        extension_options = extension.options() if extension else {}
-        return (extension_options[size], extension.names) if size in extension_options else (0, [])
+        options = self._options[low] if low in self._options else None
+        option = options[size] if (options and size in options) else None
+        return (option.count, option.names) if option else (0, [])
 
     @staticmethod
     def _make_options_and_sum():
@@ -78,4 +77,16 @@ class Index:
         #  (size special cases: -1 to minimal size, 0 to maximal size)]
         histogram = _load_from_w('ext_histogram')
         total_size = sum(v[0]*v[1] for e in histogram.values() for v in e.items() if v[0] > 0)
-        return {low: _Extension(names, histogram) for low, names in ext_names.items()}, total_size
+        return {low: Index._join(names, histogram) for low, names in ext_names.items()}, total_size
+
+    @staticmethod
+    def _join(names, histogram):
+        joined = {}
+        for name in names:
+            for size, count in histogram[name].items():
+                if size <= 0:
+                    continue
+                if size not in joined:
+                    joined[size] = _Option()
+                joined[size].add(name, count)
+        return joined
