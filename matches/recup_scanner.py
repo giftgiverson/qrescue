@@ -6,14 +6,14 @@ from os import listdir
 from os.path import join as pjoin, getsize
 from re import search as regex_match
 
-from affected import load_ext
+from affected import Index
 from my_env import data_file, rescue_folder
 
 
 # pylint: disable=too-few-public-methods
 class _RecupScanner:
     def __init__(self):
-        self.ext_histogram, self.ext_names = load_ext()
+        self._index = Index()
 
     def scan_recup(self, id_from, id_to):
         """
@@ -34,7 +34,7 @@ class _RecupScanner:
 
         print(f'== Matched {m_size / u_size * 100:.2f}%,'
               f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, u_size]])}GB')
-        a_size = sum(v[0]*v[1] for e in self.ext_histogram.values() for v in e.items() if v[0] > 0)
+        a_size = self._index.total_size
         print(f'== Recovering up to {m_size / a_size * 100:.4f}%,'
               f' {"GB of ".join([f"{s / (1 << 30):.4f}" for s in [m_size, a_size]])}GB')
 
@@ -46,7 +46,7 @@ class _RecupScanner:
             f_path = pjoin(id_path, f_name)
             f_ext: str = regex_match(r'\.([^.]+)$', f_path).group(1).lower()
             f_size = getsize(f_path)
-            match_count, match_ext_names = self._match(f_ext, f_size)
+            match_count, match_ext_names = self._index.get_matches(f_ext, f_size)
             report = \
                 ', '.join(
                     [str(match_count), '|'.join(match_ext_names),
@@ -59,16 +59,6 @@ class _RecupScanner:
                 unmatched_file.write(report)
                 u_size += f_size
         return m_size, u_size
-
-    def _match(self, f_ext, f_size):
-        match_ext_names = []
-        match_count = 0
-        if f_ext in self.ext_names:
-            for ext in self.ext_names[f_ext]:
-                if f_size in self.ext_histogram[ext]:
-                    match_ext_names.append(ext)
-                    match_count += self.ext_histogram[ext][f_size]
-        return match_count, match_ext_names
 
     @staticmethod
     def _report_folder(folder_id, report_file, m_s, u_s):
