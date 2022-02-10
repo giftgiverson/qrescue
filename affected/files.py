@@ -6,6 +6,7 @@ from os import path, utime, remove
 from shutil import copy
 
 from my_env import nas_to_pc, data_file, data_backup
+from my_misc import static_vars
 
 from .folders import load_folders
 
@@ -84,17 +85,20 @@ class AffectedFile:
                          str(self._modified_time), self._name])
 
 
-def load_files():
+@static_vars(files=[])
+def load_files(refresh=False):
     """
     Load affected files
     :return: list of AffectedFile
     """
-    folders = load_folders()
-    read_files = []
-    with data_file(AFFECTED_FILES_CSV) as file:
-        for line in file:
-            read_files.append(AffectedFile(line, folders))
-    return read_files
+    if refresh or not load_files.files:
+        folders = load_folders()
+        read_files = []
+        with data_file(AFFECTED_FILES_CSV) as file:
+            for line in file:
+                read_files.append(AffectedFile(line, folders))
+        load_files.files = read_files
+    return load_files.files
 
 
 def update_files(affected_files):
@@ -106,3 +110,4 @@ def update_files(affected_files):
     with data_file(AFFECTED_FILES_CSV, 'w') as file:
         for affected in affected_files:
             file.write(affected.serialize() + '\n')
+    load_files.files = []
