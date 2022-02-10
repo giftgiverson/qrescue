@@ -8,7 +8,8 @@ from shutil import copy
 from my_env import nas_to_pc, data_file, data_backup
 
 from .folders import load_folders
-from .affected import AFFECTED_FILES_CSV
+
+AFFECTED_FILES_CSV = 'affected_files.csv'
 
 
 class AffectedFile:

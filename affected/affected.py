@@ -4,8 +4,6 @@ Manage handling of affected files
 
 from my_env import data_file
 
-AFFECTED_FILES_CSV = 'affected_files.csv'
-
 
 def _load_from_w(file_name):
     with data_file(file_name + '.pyon') as file:
