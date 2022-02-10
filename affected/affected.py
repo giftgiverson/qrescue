@@ -79,4 +79,4 @@ def update_files(affected_files):
     data_backup(AFFECTED_FILES_CSV)
     with data_file(AFFECTED_FILES_CSV, 'w') as file:
         for affected in affected_files:
-            file.write(', '.join(str(v) for v in affected))
+            file.write(', '.join(str(v) for v in affected) + '\n')
