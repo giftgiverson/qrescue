@@ -5,8 +5,6 @@ Implements handling of affected folders
 from my_env import data_file
 from my_misc import static_vars
 
-_folders = {}
-
 
 class AffectedFolder:
     """

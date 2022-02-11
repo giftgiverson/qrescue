@@ -28,11 +28,13 @@ def last_rescue_folder():
     """
     :return: (int) largest rescue folder ID
     """
-    max([int(m.group(1))
+    return max(
+        [int(m.group(1))
          for m in [regex_match(RESCUE_FOLDER_PREFIX + r'\.(\d+)', f)
                    for f in listdir(RESCUE_FOLDER)]
          if m]
         )
+
 
 def rescued_file(f_id, f_name):
     """
@@ -67,13 +69,12 @@ def data_backup(f_name, label=''):
     return backup_name
 
 
-def nas_to_pc(folder):
+def nas_to_pc(path):
     """
     Gets PC-side paths for those read on NAS
-    :param folder: NAS-side folder path
+    :param path: NAS-side folder path
     :return: PC-side folder match
     """
-    path = folder[1]
     for nas_path, pc_path in NAS_TO_PC.items():
         path = path.replace(nas_path, pc_path)
     return path
