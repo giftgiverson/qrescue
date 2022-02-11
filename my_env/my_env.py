@@ -3,7 +3,7 @@ Implement managing file access
 """
 
 from os.path import join as pjoin
-from os import rename, listdir
+import os
 from re import search as regex_match
 from datetime import datetime
 
@@ -31,7 +31,7 @@ def last_rescue_folder():
     return max(
         [int(m.group(1))
          for m in [regex_match(RESCUE_FOLDER_PREFIX + r'\.(\d+)', f)
-                   for f in listdir(RESCUE_FOLDER)]
+                   for f in os.listdir(RESCUE_FOLDER)]
          if m]
         )
 
@@ -65,7 +65,7 @@ def data_backup(f_name, label=''):
     """
     timestamp = datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S')
     backup_name = (label + timestamp + '.').join(f_name.split('.'))
-    rename(pjoin(DATA_FOLDER, f_name), pjoin(DATA_FOLDER, backup_name))
+    os.rename(pjoin(DATA_FOLDER, f_name), pjoin(DATA_FOLDER, backup_name))
     return backup_name
 
 
