@@ -2,7 +2,7 @@
 Implements handling of affected folders
 """
 
-from my_env import data_file
+import my_env
 from my_misc import static_vars
 
 
@@ -39,7 +39,7 @@ def load_folders(refresh=False):
     """
     if refresh or not load_folders.folders:
         read_folders = []
-        with data_file('affected_folders.csv') as file:
+        with my_env.data_file('affected_folders.csv') as file:
             for line in file:
                 read_folders.append(AffectedFolder(line))
         load_folders.folders = {read_folder.key: read_folder for read_folder in read_folders}
