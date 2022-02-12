@@ -1,7 +1,7 @@
 """
 Tests for affected.folders
 """
-from mock import PropertyMock
+from mock import PropertyMock, call
 import pytest
 from affected.folders import AffectedFolder, load_folders
 from my_misc import static_vars
@@ -28,10 +28,10 @@ def next_key():
 @pytest.fixture
 def mocker_affected_folder(mocker):
     """provides an increasing key for each call to AffectedFolder.key"""
-    mocker.patch('affected.folders.AffectedFolder.__init__', return_value=None)
+    af_init_mocked = mocker.patch('affected.folders.AffectedFolder.__init__', return_value=None)
     af_mocked = mocker.patch('affected.folders.AffectedFolder.key', new_callable=PropertyMock)
     af_mocked.side_effect = next_key
-    return af_mocked
+    return af_init_mocked
 
 # endregion global mocks
 
@@ -57,10 +57,15 @@ def test_load_folder(mocker_file_read_lines, mocker_affected_folder):
     """test load_folders reads the file only once per-refresh,
      and correctly constructs the folders list"""
     folders1 = load_folders()
+    mocker_affected_folder.assert_has_calls([call('line1\n'), call('line2\n'), call('line3\n')])
+    assert mocker_affected_folder.call_count == 3
     folders2 = load_folders()
+    assert mocker_affected_folder.call_count == 3
     assert folders1 == folders2
     assert list(folders1.keys()) == [1, 2, 3]
     folders3 = load_folders(True)
+    mocker_affected_folder.assert_has_calls([call('line1\n'), call('line2\n'), call('line3\n')])
+    assert mocker_affected_folder.call_count == 6
     assert folders1 != folders3
     assert list(folders3.keys()) == [4, 5, 6]
 
