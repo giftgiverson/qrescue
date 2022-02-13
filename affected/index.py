@@ -5,7 +5,12 @@ Manage handling of affected files
 from my_env import data_file
 
 
-def _load_from_w(file_name):
+def load_pyon_data_file(file_name):
+    """
+    Loads encoded python object from file
+    :param file_name: name of file in data folder (without extension)
+    :return: evaluated pyton object
+    """
     with data_file(file_name + '.pyon') as file:
         # pylint: disable=eval-used
         return eval(file.read())
@@ -15,7 +20,7 @@ class _Option:
     @property
     def count(self):
         """
-        :return: extension options dictionary (size: count)
+        :return: number of affected files matches by this extension in all its forms
         """
         return self._count
 
@@ -43,7 +48,7 @@ class _Option:
 # pylint: disable=too-few-public-methods
 class Index:
     """
-    Affected file index, buy extension and size
+    Affected file index, by extension and size
     """
     @property
     def total_size(self):
@@ -72,11 +77,11 @@ class Index:
     @staticmethod
     def _make_options_and_sum():
         # dictionary of extension.lower() to array of orig_extension
-        ext_names = _load_from_w('ext_vers')
+        ext_names = load_pyon_data_file('ext_vers')
         # dictionary orig_extension to [dictionary of actual-size to count]
         #  (size special cases: -1 to minimal size, 0 to maximal size)]
-        histogram = _load_from_w('ext_histogram')
-        total_size = sum(v[0]*v[1] for e in histogram.values() for v in e.items() if v[0] > 0)
+        histogram = load_pyon_data_file('ext_histogram')
+        total_size = sum(v[0] * v[1] for e in histogram.values() for v in e.items() if v[0] > 0)
         return {low: Index._join(names, histogram) for low, names in ext_names.items()}, total_size
 
     @staticmethod

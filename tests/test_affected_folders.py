@@ -1,13 +1,14 @@
 """
 Tests for affected.folders
 """
-from mock import PropertyMock, call
 import pytest
+from mock import PropertyMock, call
+
 from affected.folders import AffectedFolder, load_folders
 from my_misc import static_vars
 
 
-# region global mocks
+# region mocks
 
 
 @pytest.fixture
@@ -33,7 +34,8 @@ def mocker_affected_folder(mocker):
     af_mocked.side_effect = next_key
     return af_init_mocked
 
-# endregion global mocks
+
+# endregion mocks
 
 
 # region tests
