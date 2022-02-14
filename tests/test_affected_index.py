@@ -5,21 +5,11 @@ import pytest
 
 import affected.index
 import my_env.my_env
+# pylint: disable=unused-import
+from .helpers import mocker_file_read_lines
 
 
 # region mocks
-
-@pytest.fixture
-def mocker_file_read_lines(mocker):
-    """mock opening a file with encoded python data-file with encoded dictionary"""
-    mocker.patch.object(my_env.my_env, 'DATA_FOLDER', 'flying_circus/')
-    mocked_folder_file_data = \
-        mocker.mock_open(
-            read_data=
-            "{'ext': {-1: 100, 0: 1000, 100: 1, 1000: 2},"
-            " 'EXT': {-1: 200, 0: 1000, 200: 2, 1000: 1}, }")
-    return mocker.patch('builtins.open', mocked_folder_file_data)
-
 
 def load_pyon_data_file(f_name):
     """mock loading extension summary objects from file"""
@@ -40,8 +30,13 @@ def load_pyon_data_file(f_name):
 # region tests
 
 # pylint: disable=redefined-outer-name
-def test_load_pyon_data_file(mocker_file_read_lines):
+# pylint: disable=unused-argument
+@pytest.mark.file_lines(
+    "{'ext': {-1: 100, 0: 1000, 100: 1, 1000: 2},"
+    " 'EXT': {-1: 200, 0: 1000, 200: 2, 1000: 1}}")
+def test_load_pyon_data_file(mocker, mocker_file_read_lines):
     """test correct loading of pyon data file"""
+    mocker.patch.object(my_env.my_env, 'DATA_FOLDER', 'flying_circus/')
     actual = [(e, list(o.items())) for e, o in affected.index.load_pyon_data_file('monty').items()]
     expected = [('ext', [(-1, 100), (0, 1000), (100, 1), (1000, 2)]),
                 ('EXT', [(-1, 200), (0, 1000), (200, 2), (1000, 1)])]

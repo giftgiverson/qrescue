@@ -6,17 +6,11 @@ from mock import PropertyMock, call
 
 from affected.folders import AffectedFolder, load_folders
 from my_misc import static_vars
+# pylint: disable=unused-import
+from .helpers import mocker_file_read_lines
 
 
 # region mocks
-
-
-@pytest.fixture
-def mocker_file_read_lines(mocker):
-    """mock opening a file with three lines"""
-    mocked_folder_file_data = mocker.mock_open(read_data='line1\nline2\nline3\n')
-    return mocker.patch('builtins.open', mocked_folder_file_data)
-
 
 # pylint: disable=no-member
 @static_vars(key=0)
@@ -55,6 +49,7 @@ def test_affected_folder_class():
 
 # pylint: disable=redefined-outer-name
 # pylint: disable=unused-argument
+@pytest.mark.file_lines('line1', 'line2', 'line3')
 def test_load_folder(mocker_file_read_lines, mocker_affected_folder):
     """test load_folders reads the file only once per-refresh,
      and correctly constructs the folders list"""
