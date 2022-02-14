@@ -81,7 +81,7 @@ class AffectedFile:
         Serialize this object to CSV line
         :return: (string) CSV line (without newline)
         """
-        return ','.join([self._status, self._folder.key, self._extension, str(self._size),
+        return ', '.join([self._status, self._folder.key, self._extension, str(self._size),
                          str(self._modified_time), self._name])
 
 
