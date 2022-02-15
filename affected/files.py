@@ -2,13 +2,12 @@
 Implements handling of affected files
 """
 
-from os import path, utime, remove
-from shutil import copy
+import os
+import shutil
 
-from my_env import nas_to_pc, data_file, data_backup
+import my_env
 from my_misc import static_vars
-
-from .folders import load_folders
+import affected.folders
 
 AFFECTED_FILES_CSV = 'affected_files.csv'
 
@@ -64,16 +63,16 @@ class AffectedFile:
         :param recovered_path: path to recovered file
         :param submatch: sub-match ID
         """
-        affected_path = nas_to_pc(path.join(self._folder.path, self._name))
-        if path.exists(affected_path):
+        affected_path = my_env.nas_to_pc(os.path.join(self._folder.path, self._name))
+        if os.path.exists(affected_path):
             print(f'WARNING: AFFECTED EXISTS: {affected_path}')
-        copy(recovered_path, affected_path)
-        utime(affected_path, (self._modified_time, self._modified_time))
+        shutil.copy(recovered_path, affected_path)
+        os.utime(affected_path, (self._modified_time, self._modified_time))
         z_path = affected_path + '.7z'
-        if not path.exists(z_path):
+        if not os.path.exists(z_path):
             print(f'WARNING: 7z MISSING: {z_path}')
         else:
-            remove(affected_path + '.7z')
+            os.remove(affected_path + '.7z')
         self._status = str(submatch)
 
     def serialize(self):
@@ -93,9 +92,9 @@ def load_files(refresh=False):
     :return: list of AffectedFile
     """
     if refresh or not load_files.files:
-        folders = load_folders()
+        folders = affected.folders.load_folders()
         read_files = []
-        with data_file(AFFECTED_FILES_CSV) as file:
+        with my_env.data_file(AFFECTED_FILES_CSV) as file:
             for line in file:
                 read_files.append(AffectedFile(line, folders))
         load_files.files = read_files
@@ -107,8 +106,8 @@ def update_files(affected_files):
     Update affected files (backing up previous version)
     :param affected_files: updated AffectedFiles dictionary
     """
-    data_backup(AFFECTED_FILES_CSV)
-    with data_file(AFFECTED_FILES_CSV, 'w') as file:
-        for affected in affected_files:
-            file.write(affected.serialize() + '\n')
+    my_env.data_backup(AFFECTED_FILES_CSV)
+    with my_env.data_file(AFFECTED_FILES_CSV, 'w') as file:
+        for affected_file in affected_files:
+            file.write(affected_file.serialize() + '\n')
     load_files.files = []
