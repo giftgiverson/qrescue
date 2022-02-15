@@ -5,9 +5,8 @@ import pytest
 from mock import call
 import affected.folders
 from affected.files import AffectedFile, load_files, update_files
-import my_env.my_env
 # pylint: disable=unused-import
-from .helpers import mocker_file_read_lines, next_key, mocker_keyed_class
+from .helpers import next_key, mocker_keyed_class, DataFile, mocker_data_file
 
 
 # region helpers
@@ -41,32 +40,10 @@ class Serializable:
         """return serialized value"""
         return self.value
 
-
-class DataFile:
-    """data file mock"""
-    written = []
-
-    def __init__(self, path, mode='r'):
-        self.path = path
-        self.mode = mode
-
-    def __enter__(self):
-        return ['line\n'] if self.mode == 'r' else self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        pass
-
-    @staticmethod
-    def write(value):
-        """saves written values to static array"""
-        DataFile.written.append(value)
-
-
 # endregion helpers
 
 
 # region tests
-
 
 def test_affected_file_class_init_properties():
     """test AffectedFiles construction and properties"""
@@ -118,19 +95,16 @@ def test_affected_files_class_apply_match(mocker):
 # pylint: disable=redefined-outer-name
 # pylint: disable=unused-argument
 # pylint: disable=no-member
-@pytest.mark.file_lines('line1', 'line2', 'line3')
 @pytest.mark.class_name('affected.files.AffectedFile')
-def test_load_files(mocker, mocker_file_read_lines, mocker_keyed_class):
+def test_load_files(mocker, mocker_data_file, mocker_keyed_class):
     """test load_files reads the file only once per-refresh,
      and correctly constructs the files list"""
-    mocker.patch.object(my_env.my_env, 'DATA_FOLDER', 'shrubbery')
     mocker.patch('affected.folders.load_folders', return_value='biggus')
     next_key.key = 0
     affected.files.load_files.files = []
+    DataFile.reset_static(['line1', 'line2', 'line3'])
     files1 = load_files()
-    assert mocker_file_read_lines.call_count == 1
-    assert mocker_file_read_lines.call_args_list[0][0][0].replace('\\', '/') \
-           == 'shrubbery/affected_files.csv'
+    assert DataFile.paths == ['affected_files.csv']
     mocker_keyed_class.assert_has_calls([call('line1\n', 'biggus'), call('line2\n', 'biggus'),
                                          call('line3\n', 'biggus')])
     assert mocker_keyed_class.call_count == 3
@@ -147,20 +121,20 @@ def test_load_files(mocker, mocker_file_read_lines, mocker_keyed_class):
 
 
 @pytest.mark.class_name('affected.files.AffectedFile')
-def test_update_files(mocker, mocker_keyed_class):
+def test_update_files(mocker, mocker_keyed_class, mocker_data_file):
     """test update_files for correct writing of files and reset of load_files cache"""
     mocker.patch('affected.folders.load_folders', return_value='biggus')
-    mocker_data_file = mocker.patch('my_env.data_file', side_effect=DataFile)
     load_files.files = ['something']
     load_files()
     assert mocker_data_file.call_count == 0
     mocker_backup = mocker.patch('my_env.data_backup')
+    DataFile.reset_static()
     file_mocks = [Serializable(line) for line in ['lineA', 'lineB', 'lineC']]
-    DataFile.written = []
     update_files(file_mocks)
     mocker_backup.assert_called_with('affected_files.csv')
     assert mocker_data_file.call_count == 1
-    assert DataFile.written == ['lineA\n', 'lineB\n', 'lineC\n']
+    assert DataFile.paths == ['affected_files.csv']
+    assert DataFile.written['affected_files.csv'] == ['lineA\n', 'lineB\n', 'lineC\n']
     load_files()
     assert mocker_data_file.call_count == 2
 

@@ -5,7 +5,7 @@ Implement matching rescued files to affected files
 from matches import load_matches
 from my_env import last_rescue_folder, data_backup
 
-from .recup_scanner import _RecupScanner
+from .recup_scanner import RecupScanner
 
 
 def _remove_unmatched(unmatched):
@@ -36,7 +36,7 @@ def update_matched_remove_unmatched(is_last=False):
     if is_last:
         to_id += 1
     print(f'UPDATING MATCHED: from {from_id} to {to_id}\n====================')
-    _RecupScanner().scan_recup(from_id, to_id)
+    RecupScanner().scan_recup(from_id, to_id)
     print('REMOVING UNMATCHED\n================')
     _remove_unmatched(load_matches('un', True))
     data_backup('unmatched.csv', '_removed')

@@ -4,9 +4,8 @@ Tests for affected.index
 import pytest
 
 import affected.index
-import my_env.my_env
 # pylint: disable=unused-import
-from .helpers import mocker_file_read_lines
+from .helpers import DataFile, mocker_data_file
 
 
 # region mocks
@@ -31,17 +30,17 @@ def load_pyon_data_file(f_name):
 
 # pylint: disable=redefined-outer-name
 # pylint: disable=unused-argument
-@pytest.mark.file_lines(
-    "{'ext': {-1: 100, 0: 1000, 100: 1, 1000: 2},"
-    " 'EXT': {-1: 200, 0: 1000, 200: 2, 1000: 1}}")
-def test_load_pyon_data_file(mocker, mocker_file_read_lines):
+@pytest.mark.read_method(True)
+def test_load_pyon_data_file(mocker_data_file):
     """test correct loading of pyon data file"""
-    mocker.patch.object(my_env.my_env, 'DATA_FOLDER', 'flying_circus/')
+    DataFile.reset_static([
+        "{'ext': {-1: 100, 0: 1000, 100: 1, 1000: 2},"
+        " 'EXT': {-1: 200, 0: 1000, 200: 2, 1000: 1}}"])
     actual = [(e, list(o.items())) for e, o in affected.index.load_pyon_data_file('monty').items()]
     expected = [('ext', [(-1, 100), (0, 1000), (100, 1), (1000, 2)]),
                 ('EXT', [(-1, 200), (0, 1000), (200, 2), (1000, 1)])]
     assert expected == actual
-    mocker_file_read_lines.assert_called_with('flying_circus/monty.pyon', 'r', encoding='utf8')
+    assert DataFile.paths == ['monty.pyon']
 
 
 def test_index(mocker):

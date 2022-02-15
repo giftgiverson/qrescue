@@ -7,11 +7,12 @@ from os.path import join as pjoin, getsize
 from re import search as regex_match
 
 from affected import Index
-from my_env import data_file, rescue_folder
+import my_env
 
 
 # pylint: disable=too-few-public-methods
-class _RecupScanner:
+class RecupScanner:
+    """Recovered folder scanner"""
     def __init__(self):
         self._index = Index()
 
@@ -23,9 +24,9 @@ class _RecupScanner:
         """
         m_size = 0
         u_size = 0
-        with data_file('matched.csv', 'a') as matched_file:
-            with data_file('unmatched.csv', 'a') as unmatched_file:
-                with data_file('scan_report.csv', 'a') as report_file:
+        with my_env.data_file('matched.csv', 'a') as matched_file:
+            with my_env.data_file('unmatched.csv', 'a') as unmatched_file:
+                with my_env.data_file('scan_report.csv', 'a') as report_file:
                     for folder_id in range(id_from, id_to + 1):
                         m_s, u_s = self._scan_recup_dir(folder_id, matched_file, unmatched_file)
                         self._report_folder(folder_id, report_file, m_s, u_s)
@@ -34,7 +35,7 @@ class _RecupScanner:
         self._print_summary(m_size, u_size)
 
     def _scan_recup_dir(self, folder_id, matched_file, unmatched_file):
-        id_path = rescue_folder(str(folder_id))
+        id_path = my_env.rescue_folder(str(folder_id))
         m_size = 0
         u_size = 0
         for f_name in listdir(id_path):
@@ -64,6 +65,6 @@ class _RecupScanner:
 
     @staticmethod
     def _report_folder(folder_id, report_file, m_s, u_s):
-        report = ', '.join([rescue_folder(str(folder_id)), str(m_s), str(u_s)]) + '\n'
+        report = ', '.join([my_env.rescue_folder(str(folder_id)), str(m_s), str(u_s)]) + '\n'
         print(report)
         report_file.write(report)

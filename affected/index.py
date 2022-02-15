@@ -2,7 +2,7 @@
 Manage handling of affected files
 """
 
-from my_env import data_file
+import my_env
 
 
 def load_pyon_data_file(file_name):
@@ -11,7 +11,7 @@ def load_pyon_data_file(file_name):
     :param file_name: name of file in data folder (without extension)
     :return: evaluated pyton object
     """
-    with data_file(file_name + '.pyon') as file:
+    with my_env.data_file(file_name + '.pyon') as file:
         # pylint: disable=eval-used
         return eval(file.read())
 
