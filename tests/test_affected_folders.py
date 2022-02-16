@@ -26,7 +26,6 @@ def test_affected_folder_class():
 
 # pylint: disable=redefined-outer-name
 # pylint: disable=unused-argument
-@pytest.mark.file_lines('line1', 'line2', 'line3')
 @pytest.mark.class_name('affected.folders.AffectedFolder')
 def test_load_folder(mocker, mocker_data_file, mocker_keyed_class):
     """test load_folders reads the file only once per-refresh,

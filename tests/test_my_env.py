@@ -2,6 +2,7 @@
 Tests for my_env
 """
 from time import sleep
+from os.path import join as pjoin
 import my_env.my_env
 
 
@@ -50,6 +51,23 @@ def test_rescued_file(mocker):
     set_constants(mocker)
     assert my_env.my_env.rescued_file('1', 'to_you.wav').replace('\\', '/')\
            == 'the/knights/who/say/ni.1/to_you.wav'
+
+
+def test_data_file(mocker):
+    """test data_file open"""
+    set_constants(mocker)
+    mocked_open = mocker.mock_open()
+    mocker.patch('builtins.open', mocked_open)
+    with my_env.my_env.data_file('Arthur.txt'):
+        pass
+    path = pjoin('shrubbery', 'Arthur.txt')
+    mocked_open.assert_called_with(path, 'r', encoding='utf8')
+    with my_env.my_env.data_file('Arthur.txt', 'w'):
+        pass
+    mocked_open.assert_called_with(path, 'w', encoding='utf8')
+    with my_env.my_env.data_file('Arthur.txt', 'a'):
+        pass
+    mocked_open.assert_called_with(path, 'a', encoding='utf8')
 
 
 def test_data_backup(mocker):

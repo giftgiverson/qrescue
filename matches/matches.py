@@ -2,11 +2,9 @@
 Handle rescued files
 """
 
-from os.path import join as pjoin, exists
-from os import remove, mkdir
-from shutil import move
-
-from my_env import data_file, rescue_folder, archive_folder
+import os
+import shutil
+import my_env
 from my_misc import static_vars
 
 
@@ -31,23 +29,23 @@ class Recuperated:
 
     def __init__(self, detail):
         self._id, self._name = detail
-        self._path = pjoin(rescue_folder(self._id), self._name)
+        self._path = os.path.join(my_env.rescue_folder(self._id), self._name)
 
     def archive(self):
         """
         Moves match file to archive folder
         """
-        folder = archive_folder(self._id)
-        if not exists(folder):
-            mkdir(folder)
-        move(self.path, folder)
+        folder = my_env.archive_folder(self._id)
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        shutil.move(self.path, folder)
 
     def remove(self):
         """
         Removes match file
         """
-        if exists(self._path):
-            remove(self._path)
+        if os.path.exists(self._path):
+            os.remove(self._path)
             # print('REMOVING: ' + path)
         else:
             print('MISSING: ' + self._path)
@@ -56,7 +54,7 @@ class Recuperated:
         """
         :return: (string) serialization
         """
-        return ','.join([self._id, self._name])
+        return ', '.join([self._id, self._name])
 
 
 class Matching:
@@ -100,13 +98,13 @@ class Matching:
 
     def __init__(self, line):
         parts = line.split(',')
-        self._head = ','.join(parts[1:3])
-        ext = [e.lower() for e in parts[1].split('|')][0]
-        self._key = '.'.join([ext, parts[2]])
+        self._head = ','.join(parts[1:3]).strip()
+        ext = [e.lower() for e in parts[1].split('|')][0].strip()
+        self._key = '.'.join([ext, parts[2].strip()])
         self._matches = \
             [Recuperated(p.strip() for p in parts[n * 2 - 1:n * 2 + 1])
              for n in range(2, 1 + len(parts) >> 1)]
-        self._affected_count = int(int(parts[0] / len(self._matches)))
+        self._affected_count = int(int(parts[0]) / len(self._matches))
 
     def append(self, matched):
         """
@@ -114,7 +112,9 @@ class Matching:
         :param matched: matches of the same key
         """
         if matched.key == self._key:
-            self._matches.append(matched.matches)
+            total_affected = self._affected_count * len(self._matches)
+            self._matches += matched.matches
+            self._affected_count = int(total_affected / len(self._matches))
 
     def serialize(self):
         """
@@ -143,7 +143,7 @@ def load_matches(match_type, refresh=False):
     """
     if refresh or match_type not in load_matches.matches_by_type:
         matches = []
-        with data_file(match_type + 'matched.csv') as file:
+        with my_env.data_file(match_type + 'matched.csv') as file:
             for line in file:
                 matches.append(Matching(line))
         load_matches.matches_by_type[match_type] = matches
