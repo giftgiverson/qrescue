@@ -2,7 +2,7 @@
 Implement managing recovery operations
 """
 
-from os import path
+import os
 from matches import load_matches
 import affected
 from my_env import data_file
@@ -31,14 +31,14 @@ class Recovery:
         """
         matches = load_matches('single_', True)
         last_folder = 0
-        with data_file('recovered.csv', 'a') as recovered_file:
+        with data_file('recovered.csv', 'a') as recovered_log:
             for match in matches:
                 cur_folder = match.matches[0].id
                 if last_folder != cur_folder:
                     last_folder = cur_folder
                     print(last_folder)
                 affected_single = self._get_single_un_recovered(self._get_affected(match))
-                if affected_single and self._recover(affected_single, match, 0, recovered_file):
+                if affected_single and self._recover(affected_single, match, 0, recovered_log):
                     match.matches[0].arcive()
         affected.update_files(self._files)
         print(f'RECOVERED {len(matches)} Single Matched')
@@ -57,17 +57,17 @@ class Recovery:
         key = match.key
         return self._keyed_files[key] if key in self._keyed_files else []
 
-    def _recover(self, affected_file, match, submatch, recovered_file):
+    def _recover(self, affected_file, match, submatch, recovered_log):
         match_path = self._make_path(affected_file, match, submatch)
         if match_path:
             affected_file.apply_match(match_path, submatch)
-        recovered_file.write(affected_file.serialize() + '\n')
+        recovered_log.write(affected_file.serialize() + '\n')
         return match_path
 
     @staticmethod
     def _make_path(affected_file, match, submatch):
         match_path = match.matches[submatch].path
-        if not path.exists(match_path):
+        if not os.path.exists(match_path):
             print(f'WARNING: MATCH FILE ALREADY ARCHIVED: {match_path}, for {affected_file}')
             return None
         return match_path
