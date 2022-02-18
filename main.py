@@ -4,7 +4,7 @@ Entry point for QRescue automation
 
 from matches import update_matched_remove_unmatched, squash_matched
 from duplicates import update_and_remove_duplicates
-from recovery import Recovery
+from recovery import Recovery, SingleHandler
 
 
 def update(is_last=False):
@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     recovery = Recovery()
     # === PHASE 3: Recovering single-matched files 'blindly'
-    recovery.recover_single_matched()
+    recovery.recover_single_matched(SingleHandler())
 
     # === PHASE 4: Recovering multi-matched files interactively, by type
     # pylint: disable=fixme

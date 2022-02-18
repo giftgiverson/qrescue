@@ -25,33 +25,36 @@ class Recovery:
             keyed_files[file.key].append(file)
         return keyed_files
 
-    def recover_single_matched(self):
+    def recover_single_matched(self, handler):
         """
         Recover single-matched files
         """
         matched = matches.load_matches('single_', True)
+        self._recover_matched(handler, matched)
+
+    def recover_multi_matched(self, handler):
+        """
+        Recover multi-matched files
+        """
+        matched = matches.load_matches('squashed_multi_', True)
+        self._recover_matched(handler, matched)
+
+    def _recover_matched(self, handler, matched):
         last_folder = 0
+        recovered = 0
         with my_env.data_file('recovered.csv', 'a') as recovered_log:
             for match in matched:
                 cur_folder = match.matches[0].id
                 if last_folder != cur_folder:
                     last_folder = cur_folder
                     print(last_folder)
-                affected_single = self._get_single_un_recovered(self._get_affected(match))
-                if affected_single and self._recover(affected_single, match, 0, recovered_log):
-                    match.matches[0].archive()
+                if handler.can_handle(match):
+                    for affected_file, submatch in handler.handle(match, self._get_affected(match)):
+                        if self._recover(affected_file, match, submatch, recovered_log):
+                            recovered += 1
+                            match.matches[submatch].archive()
         affected.update_files(self._files)
-        print(f'RECOVERED {len(matched)} Single Matched')
-
-    @staticmethod
-    def _get_single_un_recovered(affected_list):
-        if len(affected_list) != 1:
-            print(f'EXPECTED SINGLE MATCH, FOUND: {affected_list}')
-            return None
-        if affected_list[0].is_matched:
-            print(f'ALREADY RECOVERED: {affected_list[0]}')
-            return None
-        return affected_list[0]
+        print(f'RECOVERED {recovered} Matched {handler.get_type()}')
 
     def _get_affected(self, match):
         key = match.key

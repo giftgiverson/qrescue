@@ -55,15 +55,6 @@ class RecoveryTestbed(recovery.recovery.Recovery):
         """
         return self._keyed_files
 
-    def assert_get_single_un_recovered(self, key, expected):
-        """
-        Assert expected single detection
-        :param key: files key
-        :param expected: expected output key
-        """
-        actual = self._get_single_un_recovered(self._keyed_files[key])
-        assert expected == (actual.key if actual else NO_MATCH)
-
     def assert_get_affected(self, match, expected):
         """
         Assert expected match detection
@@ -174,7 +165,7 @@ class MatchTestbed:
 
     def __repr__(self):
         """class representation"""
-        return str([self._key, [self._matches]])
+        return str([self._key, self._matches])
 
 
 @static_vars(matches=[])
@@ -197,11 +188,23 @@ def match_testbed(mocker):
     mocker.patch('matches.load_matches', side_effect=make_matches)
 
 
-# pylint: disable=unused-argument
-def match_not_13(*args):
-    """mock call matching non-13 files"""
-    return args[1].key != 'jpg.13'
+class MockSingleHandler:
+    """handle single matches recovery"""
 
+    @staticmethod
+    def can_handle(match):
+        """mock can handle"""
+        return match.key != 'jpg.12'
+
+    @staticmethod
+    def handle(match, affected_list):
+        """mock handle"""
+        return [(affected_list, 0)] if match.key != 'jpg.10' else []
+
+    @staticmethod
+    def get_type():
+        """handler type"""
+        return 'Mock-Single'
 
 # endregion mocks
 
@@ -215,18 +218,6 @@ def test_recovery_class_keyed_files(recovery_testbed):
             for key, files in recovery_testbed.keyed_files.items()] \
            == [['jpg.10', 'jpg.10', 'jpg.10'], ['jpg.11', 'jpg.11'], ['jpg.12', 'jpg.12'],
                ['jpg.13', 'jpg.13']]
-
-
-# pylint: disable=redefined-outer-name
-def test_recovery_class_single_detection(recovery_testbed):
-    """test single detection"""
-    # more than one match
-    recovery_testbed.assert_get_single_un_recovered('jpg.10', NO_MATCH)
-    # one previously unmatched
-    recovery_testbed.assert_get_single_un_recovered('jpg.11', 'jpg.11')
-    recovery_testbed.assert_get_single_un_recovered('jpg.12', 'jpg.12')
-    # one previously matched
-    recovery_testbed.assert_get_single_un_recovered('jpg.13', NO_MATCH)
 
 
 # pylint: disable=redefined-outer-name
@@ -265,18 +256,16 @@ def test_recover(mocker, mocker_data_file, recovery_testbed):
 def test_recover_single_matches(mocker, mocker_data_file, recovery_testbed, match_testbed):
     """test single recovery"""
     mocker.patch('recovery.recovery.Recovery._get_affected', side_effect=lambda x: x)
-    mocker.patch('recovery.recovery.Recovery._get_single_un_recovered',
-                 side_effect=lambda x: x.key != 'jpg.10')
     mocker.patch('recovery.recovery.Recovery._recover',
                  side_effect=lambda *args: args[1].key != 'jpg.13')
     mocker_update = mocker.patch('affected.update_files')
-    recovery_testbed.recover_single_matched()
+    recovery_testbed.recover_single_matched(MockSingleHandler())
     assert str(make_matches.matches) == \
-           str([['jpg.10', [[['1', "'E's kicked the bucket", False],
-                             ['2', "e's shuffled off 'is mortal coil", False]]]],
-                ['jpg.11', [[['1', 'run down the curtain', True]]]],
-                ['jpg.12', [[['1', "joined the bleedin' choir invisible", True]]]],
-                ['jpg.13', [[['1', 'EX-PARROT', False]]]]])
+           str([['jpg.10', [['1', "'E's kicked the bucket", False],
+                            ['2', "e's shuffled off 'is mortal coil", False]]],
+                ['jpg.11', [['1', 'run down the curtain', True]]],
+                ['jpg.12', [['1', "joined the bleedin' choir invisible", False]]],
+                ['jpg.13', [['1', 'EX-PARROT', False]]]])
     assert str(mocker_update.call_args) == \
            'call([[1/passed_on.jpg [10], [1/no_more.jpg [11], [2/ceased_to_be.jpg [10],' \
            ' [2/expired.jpg [12], [2/gone_to_meet_its_maker.jpg [13]])'
