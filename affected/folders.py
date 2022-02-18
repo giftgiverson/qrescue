@@ -29,6 +29,12 @@ class AffectedFolder:
         self._key = parts[0].strip()
         self._path = ','.join(parts[1:]).strip()
 
+    def __repr__(self):
+        """
+        :return: this class' representation
+        """
+        return self.key
+
 
 @static_vars(folders={})
 def load_folders(refresh=False):

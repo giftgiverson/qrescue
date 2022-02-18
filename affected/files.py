@@ -83,6 +83,12 @@ class AffectedFile:
         return ', '.join([self._status, self._folder.key, self._extension, str(self._size),
                          str(self._modified_time), self._name])
 
+    def __repr__(self):
+        """
+        :return: this class' representation
+        """
+        return f'[{self._folder}/{self._name} [{self._size}]'
+
 
 @static_vars(files=[])
 def load_files(refresh=False):
