@@ -6,10 +6,12 @@ import affected
 import recovery
 import my_env
 # pylint: disable=unused-import
-from .helpers import DataFile, mocker_data_file
+from .helpers import DataFile, mocker_data_file, static_vars
 
 NO_MATCH = "no match"
 
+
+# region mocks
 
 def make_folders():
     """make a folder dictionary"""
@@ -110,6 +112,15 @@ def recovery_testbed(mocker):
 
 class SubmatchTestbed:
     """keyed class"""
+
+    # pylint: disable=invalid-name
+    @property
+    def id(self):
+        """
+        :return: id
+        """
+        return self._id
+
     @property
     def path(self):
         """
@@ -117,12 +128,30 @@ class SubmatchTestbed:
         """
         return self._path
 
-    def __init__(self, path):
+    @property
+    def is_archived(self):
+        """
+        :return: was the archive method called
+        """
+        return self._is_archived
+
+    def __init__(self, path, submatch_id):
         self._path = path
+        self._id = str(submatch_id)
+        self._is_archived = False
+
+    def archive(self):
+        """mock archive method"""
+        self._is_archived = True
+
+    def __repr__(self):
+        """class representation"""
+        return str([self._id, self._path, self._is_archived])
 
 
 class MatchTestbed:
     """keyed class"""
+
     @property
     def key(self):
         """
@@ -137,11 +166,47 @@ class MatchTestbed:
         """
         return self._matches
 
-    #pylint: disable=protected-access
+    # pylint: disable=protected-access
     def __init__(self, key, paths=None):
         self._key = key
-        self._matches = [SubmatchTestbed(path) for path in paths] if paths else []
+        self._matches = [SubmatchTestbed(path, 1 + i % 2) for i, path in
+                         enumerate(paths)] if paths else []
 
+    def __repr__(self):
+        """class representation"""
+        return str([self._key, [self._matches]])
+
+
+@static_vars(matches=[])
+def make_matches(file, is_reload):
+    """make matches for testing"""
+    print(f'make_matches({file}, {is_reload})')
+    make_matches.matches = \
+        [MatchTestbed(key, value) for key, value in {
+            'jpg.10': ["'E's kicked the bucket", "e's shuffled off 'is mortal coil"],
+            'jpg.11': ['run down the curtain'],
+            'jpg.12': ["joined the bleedin' choir invisible"],
+            'jpg.13': ['EX-PARROT']
+        }.items()]
+    return make_matches.matches
+
+
+@pytest.fixture
+def match_testbed(mocker):
+    """overrides load_files to use test values"""
+    mocker.patch('matches.load_matches', side_effect=make_matches)
+
+
+# pylint: disable=unused-argument
+def match_not_13(*args):
+    """mock call matching non-13 files"""
+    return args[1].key != 'jpg.13'
+
+
+# endregion mocks
+
+
+# region tests
 
 # pylint: disable=redefined-outer-name
 def test_recovery_class_keyed_files(recovery_testbed):
@@ -193,3 +258,27 @@ def test_recover(mocker, mocker_data_file, recovery_testbed):
     recovery_testbed.assert_recover(MatchTestbed('jpg.11'), "'E's off the twig")
     mocked_path.return_value = None
     recovery_testbed.assert_recover(MatchTestbed('jpg.11'), NO_MATCH)
+
+
+# pylint: disable=redefined-outer-name
+# pylint: disable=unused-argument
+def test_recover_single_matches(mocker, mocker_data_file, recovery_testbed, match_testbed):
+    """test single recovery"""
+    mocker.patch('recovery.recovery.Recovery._get_affected', side_effect=lambda x: x)
+    mocker.patch('recovery.recovery.Recovery._get_single_un_recovered',
+                 side_effect=lambda x: x.key != 'jpg.10')
+    mocker.patch('recovery.recovery.Recovery._recover',
+                 side_effect=lambda *args: args[1].key != 'jpg.13')
+    mocker_update = mocker.patch('affected.update_files')
+    recovery_testbed.recover_single_matched()
+    assert str(make_matches.matches) == \
+           str([['jpg.10', [[['1', "'E's kicked the bucket", False],
+                             ['2', "e's shuffled off 'is mortal coil", False]]]],
+                ['jpg.11', [[['1', 'run down the curtain', True]]]],
+                ['jpg.12', [[['1', "joined the bleedin' choir invisible", True]]]],
+                ['jpg.13', [[['1', 'EX-PARROT', False]]]]])
+    assert str(mocker_update.call_args) == \
+           'call([[1/passed_on.jpg [10], [1/no_more.jpg [11], [2/ceased_to_be.jpg [10],' \
+           ' [2/expired.jpg [12], [2/gone_to_meet_its_maker.jpg [13]])'
+
+# endregion tests

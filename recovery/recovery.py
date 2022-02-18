@@ -3,9 +3,9 @@ Implement managing recovery operations
 """
 
 import os
-from matches import load_matches
+import matches
 import affected
-from my_env import data_file
+import my_env
 
 
 # pylint: disable=too-few-public-methods
@@ -29,19 +29,19 @@ class Recovery:
         """
         Recover single-matched files
         """
-        matches = load_matches('single_', True)
+        matched = matches.load_matches('single_', True)
         last_folder = 0
-        with data_file('recovered.csv', 'a') as recovered_log:
-            for match in matches:
+        with my_env.data_file('recovered.csv', 'a') as recovered_log:
+            for match in matched:
                 cur_folder = match.matches[0].id
                 if last_folder != cur_folder:
                     last_folder = cur_folder
                     print(last_folder)
                 affected_single = self._get_single_un_recovered(self._get_affected(match))
                 if affected_single and self._recover(affected_single, match, 0, recovered_log):
-                    match.matches[0].arcive()
+                    match.matches[0].archive()
         affected.update_files(self._files)
-        print(f'RECOVERED {len(matches)} Single Matched')
+        print(f'RECOVERED {len(matched)} Single Matched')
 
     @staticmethod
     def _get_single_un_recovered(affected_list):
