@@ -52,7 +52,7 @@ class AffectedFile:
     @property
     def name(self):
         """
-        :return: (string) file name"
+        :return: (string) file name
         """
         return self._name
 
@@ -63,15 +63,21 @@ class AffectedFile:
         """
         return self._path
 
+    @property
+    def folder_key(self):
+        """
+        :return: (string) folder key
+        """
+        return self._folder_key
+
     def __init__(self, str_serialization, folders):
         parts = str_serialization.split(',')
-        self._status, folder_key, self._extension = [part.strip() for part in parts[:3]]
-        self._folder = folders[folder_key]
+        self._status, self._folder_key, self._extension = [part.strip() for part in parts[:3]]
         self._size = int(parts[3])
         self._key = '.'.join([self._extension, str(self._size)])
         self._modified_time = float(parts[4])
         self._name = ','.join(parts[5:]).strip()
-        self._path = my_env.nas_to_pc(os.path.join(self._folder.path, self._name))
+        self._path = my_env.nas_to_pc(os.path.join(folders[self._folder_key].path, self._name))
 
     def apply_match(self, recovered_path, submatch):
         """
@@ -95,14 +101,14 @@ class AffectedFile:
         Serialize this object to CSV line
         :return: (string) CSV line (without newline)
         """
-        return ', '.join([self._status, self._folder.key, self._extension, str(self._size),
+        return ', '.join([self._status, self._folder_key, self._extension, str(self._size),
                          str(self._modified_time), self._name])
 
     def __repr__(self):
         """
         :return: this class' representation
         """
-        return f'[{self._folder}/{self._name} [{self._size}]'
+        return f'[{self._path} [{self._size}]'
 
 
 @static_vars(files=[])

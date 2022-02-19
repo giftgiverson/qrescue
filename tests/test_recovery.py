@@ -266,8 +266,9 @@ def test_recover_single_matches(mocker, mocker_data_file, recovery_testbed, matc
                 ['jpg.11', [['1', 'run down the curtain', True]]],
                 ['jpg.12', [['1', "joined the bleedin' choir invisible", False]]],
                 ['jpg.13', [['1', 'EX-PARROT', False]]]])
-    assert str(mocker_update.call_args) == \
-           'call([[1/passed_on.jpg [10], [1/no_more.jpg [11], [2/ceased_to_be.jpg [10],' \
-           ' [2/expired.jpg [12], [2/gone_to_meet_its_maker.jpg [13]])'
+    assert str(mocker_update.call_args).replace('\\', '/') == \
+           'call([[Norwegian/passed_on.jpg [10], [Norwegian/no_more.jpg [11],' \
+           ' [Blue/ceased_to_be.jpg [10], [Blue/expired.jpg [12],' \
+           ' [Blue/gone_to_meet_its_maker.jpg [13]])'
 
 # endregion tests
