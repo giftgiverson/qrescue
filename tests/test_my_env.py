@@ -3,6 +3,7 @@ Tests for my_env
 """
 from time import sleep
 from os.path import join as pjoin
+from stat import ST_MTIME
 import my_env.my_env
 
 
@@ -102,5 +103,26 @@ def test_archive_folder(mocker):
     """test archive-folder path construction"""
     set_constants(mocker)
     assert my_env.my_env.archive_folder('2').replace('\\', '/') == 'sacrifice/ni.2'
+
+
+def test_neighbor_modified_limits(mocker):
+    """test locating limits of files' modified-time next to a target"""
+    mocked_globe = mocker.patch('glob.glob', return_value=[1.0, 2.0, 3.0])
+    mocker.patch('os.stat', side_effect=lambda x: {ST_MTIME: x})
+    assert my_env.my_env.neighbor_modified_limits('sacrifice/Ni.wom') == [1.0, 3.0]
+    mocked_globe.assert_called_with(pjoin('sacrifice', '*.wom'))
+    mocked_globe.return_value = [4.0]
+    assert my_env.my_env.neighbor_modified_limits('sacrifice/Ni.wom') == [4.0]
+    mocked_globe.return_value = []
+    assert not my_env.my_env.neighbor_modified_limits('sacrifice/Ni.wom')
+
+
+def test_parent_and_previous_folder(mocker):
+    """test locating parent and previous folder in parent's folder"""
+    mocked_listdir = mocker.patch('os.listdir', return_value=['Pen', 'Ni', 'PTANG', 'Zzzz'])
+    assert my_env.my_env.parent_and_previous_folder('sacrifice/PTANG/Ni.wom') == ('Pen', 'PTANG')
+    mocked_listdir.assert_called_with('sacrifice')
+    mocked_listdir.return_value = ['Zzzz', 'PTANG']
+    assert my_env.my_env.parent_and_previous_folder('sacrifice/PTANG/Ni.wom') == ('PTANG')
 
 # endregion tests
