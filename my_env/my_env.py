@@ -104,6 +104,6 @@ def neighbor_modified_limits(file_path):
     if modified_files:
         if len(modified_files) > 1:
             sorted_files = sorted(modified_files)
-            return sorted_files[0][1], sorted_files[-1][1]
-        return modified_files[0][1]
-    return None
+            return [sorted_files[0][1], sorted_files[-1][1]]
+        return [modified_files[0][1]]
+    return []
