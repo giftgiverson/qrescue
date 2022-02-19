@@ -199,7 +199,7 @@ class MockSingleHandler:
     @staticmethod
     def handle(match, affected_list):
         """mock handle"""
-        return [(affected_list, 0)] if match.key != 'jpg.10' else []
+        return [(affected_list, 0, True)] if match.key != 'jpg.10' else []
 
     @staticmethod
     def get_type():

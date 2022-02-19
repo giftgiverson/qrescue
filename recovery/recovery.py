@@ -49,10 +49,12 @@ class Recovery:
                     last_folder = cur_folder
                     print(last_folder)
                 if handler.can_handle(match):
-                    for affected_file, submatch in handler.handle(match, self._get_affected(match)):
+                    for affected_file, submatch, archivable\
+                            in handler.handle(match, self._get_affected(match)):
                         if self._recover(affected_file, match, submatch, recovered_log):
                             recovered += 1
-                            match.matches[submatch].archive()
+                            if archivable:
+                                match.matches[submatch].archive()
         affected.update_files(self._files)
         print(f'RECOVERED {recovered} Matched {handler.get_type()}')
 
