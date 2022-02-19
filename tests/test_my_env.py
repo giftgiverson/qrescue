@@ -120,9 +120,25 @@ def test_neighbor_modified_limits(mocker):
 def test_parent_and_previous_folder(mocker):
     """test locating parent and previous folder in parent's folder"""
     mocked_listdir = mocker.patch('os.listdir', return_value=['Pen', 'Ni', 'PTANG', 'Zzzz'])
-    assert my_env.my_env.parent_and_previous_folder('sacrifice/PTANG/Ni.wom') == ('Pen', 'PTANG')
+    assert my_env.my_env.parent_and_previous_folder('sacrifice/PTANG/Ni.wom') == ('PTANG', 'Pen')
     mocked_listdir.assert_called_with('sacrifice')
     mocked_listdir.return_value = ['Zzzz', 'PTANG']
     assert my_env.my_env.parent_and_previous_folder('sacrifice/PTANG/Ni.wom') == ('PTANG')
+
+
+def test_timestamp_from_name():
+    """test parsing of name into timestamp"""
+    assert my_env.my_env.timestamp_from_name('2022_02_19') == 1645308000.0
+    assert my_env.my_env.timestamp_from_name('not-a-date') == -1.0
+
+
+def test_timestamp_from_names():
+    """test parsing of names into timestamp-range"""
+    assert my_env.my_env.timestamps_from_names(['2022_02_19', '2022_02_10']) ==\
+           [1644530400.0, 1645308000.0]
+    assert my_env.my_env.timestamps_from_names(['2022_02_19']) == [1640988000.0, 1645308000.0]
+    assert my_env.my_env.timestamps_from_names(['2022_02_19', 'not-a-date']) ==\
+           [1640988000.0, 1645308000.0]
+    assert not my_env.my_env.timestamps_from_names(['not-a-date', 'not-a-date-either'])
 
 # endregion tests

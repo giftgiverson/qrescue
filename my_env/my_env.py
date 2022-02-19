@@ -5,9 +5,11 @@ Implement managing file access
 from os.path import join as pjoin
 import os
 from re import search as regex_match
-from datetime import datetime
+import datetime
+import time
 import glob
 import stat
+import re
 
 DATA_FOLDER = 'w:/'
 RESCUE_FOLDER = 'f:/share'
@@ -35,7 +37,7 @@ def last_rescue_folder():
          for m in [regex_match(RESCUE_FOLDER_PREFIX + r'\.(\d+)', f)
                    for f in os.listdir(RESCUE_FOLDER)]
          if m]
-        )
+    )
 
 
 def rescued_file(f_id, f_name):
@@ -67,7 +69,7 @@ def data_backup(f_name, label=''):
     """
     original = pjoin(DATA_FOLDER, f_name)
     if os.path.exists(original):
-        timestamp = datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S')
+        timestamp = datetime.datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S')
         backup_name = (label + timestamp + '.').join(f_name.split('.'))
         os.rename(original, pjoin(DATA_FOLDER, backup_name))
         return backup_name
@@ -117,7 +119,7 @@ def parent_and_previous_folder(file_path):
     """
     Return the names of the parent folder, and one folder before it in parent folder's folder
     :param file_path: search target
-    :return: previous folder name, parent folder name
+    :return: parent folder name, previous folder name
             [only parent returned if no other folder found.]
     """
     parent = os.path.dirname(file_path)
@@ -125,5 +127,37 @@ def parent_and_previous_folder(file_path):
     parent = os.path.basename(parent)
     parent_pos = parent_neighbors.index(parent)
     if parent_pos > 0:
-        return parent_neighbors[parent_pos - 1], parent
+        return parent, parent_neighbors[parent_pos - 1]
     return parent
+
+
+def timestamp_from_name(name):
+    """
+    Get timestamp from folder named YYYY_MM_DD
+    :param name: name to parse
+    :return: timestamp of the end (23:59:59) of the named day, or -1 if format isn't expected
+    """
+    if not re.search(r'\d{4}_\d{2}_\d{2}', name):
+        return -1.0
+    f_date_time_dt = datetime.datetime.strptime(name, '%Y_%m_%d')
+    return time.mktime(f_date_time_dt.timetuple()) + 86400.0
+
+
+def timestamps_from_names(names):
+    """
+    Get timestamp from folders named YYYY_MM_DD, or from start of YYYY to one folder
+     if only one name is given or if the second name's format is unexpected
+    :param names: list of either (folder) or (folder, previous_folder)
+    :return: timestamps, or [] on unexpected name format
+    """
+    to_date = timestamp_from_name(names[0])
+    if to_date < 0:
+        return []
+    if len(names) > 1:
+        from_date = timestamp_from_name(names[1])
+        if from_date >= 0:
+            return [from_date, to_date]
+    last_year = str(int(names[0].split('_')[0]) - 1)
+    prev_year_end = '_'.join([last_year, '12', '31'])
+    from_date = timestamp_from_name(prev_year_end)
+    return [from_date, to_date]
