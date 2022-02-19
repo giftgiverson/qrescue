@@ -12,6 +12,7 @@ import affected.folders
 AFFECTED_FILES_CSV = 'affected_files.csv'
 
 
+# pylint: disable=too-many-instance-attributes
 class AffectedFile:
     """
     Affected file
@@ -48,6 +49,20 @@ class AffectedFile:
         """
         return self._key
 
+    @property
+    def name(self):
+        """
+        :return: (string) file name"
+        """
+        return self._name
+
+    @property
+    def path(self):
+        """
+        :return: (string) file path
+        """
+        return self._path
+
     def __init__(self, str_serialization, folders):
         parts = str_serialization.split(',')
         self._status, folder_key, self._extension = [part.strip() for part in parts[:3]]
@@ -56,6 +71,7 @@ class AffectedFile:
         self._key = '.'.join([self._extension, str(self._size)])
         self._modified_time = float(parts[4])
         self._name = ','.join(parts[5:]).strip()
+        self._path = my_env.nas_to_pc(os.path.join(self._folder.path, self._name))
 
     def apply_match(self, recovered_path, submatch):
         """
@@ -63,16 +79,15 @@ class AffectedFile:
         :param recovered_path: path to recovered file
         :param submatch: sub-match ID
         """
-        affected_path = my_env.nas_to_pc(os.path.join(self._folder.path, self._name))
-        if os.path.exists(affected_path):
-            print(f'WARNING: AFFECTED EXISTS: {affected_path}')
-        shutil.copy(recovered_path, affected_path)
-        os.utime(affected_path, (self._modified_time, self._modified_time))
-        z_path = affected_path + '.7z'
+        if os.path.exists(self._path):
+            print(f'WARNING: AFFECTED EXISTS: {self._path}')
+        shutil.copy(recovered_path, self._path)
+        os.utime(self._path, (self._modified_time, self._modified_time))
+        z_path = self._path + '.7z'
         if not os.path.exists(z_path):
             print(f'WARNING: 7z MISSING: {z_path}')
         else:
-            os.remove(affected_path + '.7z')
+            os.remove(self._path + '.7z')
         self._status = str(submatch)
 
     def serialize(self):

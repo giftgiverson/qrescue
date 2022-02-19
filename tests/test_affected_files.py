@@ -45,19 +45,21 @@ class Serializable:
 
 # region tests
 
-def test_affected_file_class_init_properties():
+def test_affected_file_class_init_properties(mocker):
     """test AffectedFiles construction and properties"""
     folders = make_folders()
-    assert [(af.key, af.is_matched, af.size, af.extension) for af in
-            [AffectedFile(line, folders) for line in make_lines()]]\
-           == [('jpg.117340', True, 117340, 'jpg'),
-               ('txt.38', False, 38, 'txt')]
+    mocker.patch('my_env.nas_to_pc', side_effect=lambda x: x)
+    assert [(af.key, af.is_matched, af.size, af.extension, af.name, af.path.replace('\\', '/'))
+            for af in [AffectedFile(line, folders) for line in make_lines()]]\
+           == [('jpg.117340', True, 117340, 'jpg', 'extras_icon.jpg', 'Naughtius/extras_icon.jpg'),
+               ('txt.38', False, 38, 'txt', 'dune_folder.txt', 'Maximus/dune_folder.txt')]
 
 
-def test_affected_file_class_serialize():
+def test_affected_file_class_serialize(mocker):
     """test AffectedFiles construction and properties"""
     folders = make_folders()
     lines = make_lines()
+    mocker.patch('my_env.nas_to_pc', side_effect=lambda x: x)
     assert [af.serialize() + '\n' for af in
             [AffectedFile(line, folders) for line in lines]]\
            == lines
