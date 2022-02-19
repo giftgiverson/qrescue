@@ -107,3 +107,17 @@ def neighbor_modified_limits(file_path):
             return [sorted_files[0][1], sorted_files[-1][1]]
         return [modified_files[0][1]]
     return []
+
+
+def parent_and_previous_folder(file_path):
+    """
+    Return the names of the parent folder, and one folder before it in parent folder's folder
+    :param file_path: search target
+    :return: parent folder name, previous folder name (or '' if parent is the first folder)
+    """
+    parent = os.path.dirname(file_path)
+    parent_neighbors = sorted(os.listdir(os.path.dirname(parent)))
+    parent = os.path.basename(parent)
+    parent_pos = parent_neighbors.index(parent)
+    previous = parent_neighbors[parent_pos - 1] if parent_pos > 0 else ''
+    return parent, previous
