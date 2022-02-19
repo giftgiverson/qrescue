@@ -29,6 +29,7 @@ def test_recuperated_class_init_properties(mocker):
     """test construction of Recuperated class"""
     target, expected_path = make_recuperated_target(mocker)
     assert target.id == '2'
+    assert target.name == 'Sheds'
     assert target.path == expected_path
 
 

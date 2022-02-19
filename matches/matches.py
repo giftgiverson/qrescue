@@ -21,6 +21,13 @@ class Recuperated:
         return self._id
 
     @property
+    def name(self):
+        """
+        :return: (string) file name
+        """
+        return self._name
+
+    @property
     def path(self):
         """
         :return: (string) path to recuperated file
