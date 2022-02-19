@@ -6,6 +6,8 @@ from os.path import join as pjoin
 import os
 from re import search as regex_match
 from datetime import datetime
+import glob
+import stat
 
 DATA_FOLDER = 'w:/'
 RESCUE_FOLDER = 'f:/share'
@@ -87,3 +89,21 @@ def archive_folder(recup_id):
     :return: (string) archive folder path
     """
     return pjoin(ARCHIVE_FOLDER, '.'.join([RESCUE_FOLDER_PREFIX, recup_id]))
+
+
+def neighbor_modified_limits(file_path):
+    """
+    Return the paths of the first and last modified file in the path's directory
+     having the same extension
+    :param file_path: search target
+    :return: first modified neighbor, last modified neighbor
+    """
+    pattern = '*.' + file_path.split('.')[-1]
+    files = glob.glob(os.path.join(os.path.dirname(file_path), pattern))
+    modified_files = list((os.stat(path)[stat.ST_MTIME], path) for path in files)
+    if modified_files:
+        if len(modified_files) > 1:
+            sorted_files = sorted(modified_files)
+            return sorted_files[0][1], sorted_files[-1][1]
+        return modified_files[0][1]
+    return None
