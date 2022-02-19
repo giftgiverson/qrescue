@@ -65,10 +65,13 @@ def data_backup(f_name, label=''):
     :param label: backup label (optional)
     :return: backup file name
     """
-    timestamp = datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S')
-    backup_name = (label + timestamp + '.').join(f_name.split('.'))
-    os.rename(pjoin(DATA_FOLDER, f_name), pjoin(DATA_FOLDER, backup_name))
-    return backup_name
+    original = pjoin(DATA_FOLDER, f_name)
+    if os.path.exists(original):
+        timestamp = datetime.utcnow().strftime('%y-%m-%d_%H_%M_%S')
+        backup_name = (label + timestamp + '.').join(f_name.split('.'))
+        os.rename(original, pjoin(DATA_FOLDER, backup_name))
+        return backup_name
+    return ''
 
 
 def nas_to_pc(path):

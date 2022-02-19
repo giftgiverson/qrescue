@@ -73,7 +73,8 @@ def test_data_file(mocker):
 def test_data_backup(mocker):
     """tests date-backup renames files correctly"""
     set_constants(mocker)
-    mocker.patch('os.rename', side_effect=rename)
+    mocked_exists = mocker.patch('os.path.exists', return_value=True)
+    mocked_rename = mocker.patch('os.rename', side_effect=rename)
     old_name = ''
     for i in range(2, 4):
         name = my_env.my_env.data_backup('location.pos', '_not_found')
@@ -83,6 +84,10 @@ def test_data_backup(mocker):
         if not old_name:
             sleep(i)
         old_name = name
+    prev_calls = mocked_rename.call_count
+    mocked_exists.return_value = False
+    assert not my_env.my_env.data_backup('some', 'thing')
+    assert mocked_rename.call_count == prev_calls
 
 
 def test_nas_to_pc(mocker):
