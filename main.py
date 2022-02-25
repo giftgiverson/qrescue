@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
     # === PHASE 4: Recovering multi-matched files interactively, by type
     # == 4.1 CR2
-    with Cr2AutoHandler as handler:
+    with Cr2AutoHandler() as handler:
         recovery.recover_multi_matched(handler)
     # pylint: disable=fixme
     # TODO
