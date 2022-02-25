@@ -111,3 +111,11 @@ def test_serialize_unhandled(matching_testbed, affected_testbed):
            ' 4, Eddie.Baby.txt, 3, 0,' \
            ' 5, sweetie.txt, 4, 1,' \
            ' 6, sugar.plum.txt, 5, 2\n'
+
+
+def test_cr2autohandler_class_can_handle():
+    """test handler's class classification of handle-able matches"""
+    can_handle = matches.Matching('18, cr2, 10, 1, Sir.Edward.Ross.txt')
+    cannot_handle = matches.Matching('18, txt, 10, 1, Sir.Edward.Ross.txt')
+    assert recovery.cr2.Cr2AutoHandler.can_handle(can_handle)
+    assert not recovery.cr2.Cr2AutoHandler.can_handle(cannot_handle)
