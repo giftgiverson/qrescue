@@ -105,6 +105,12 @@ class Matching:
              for n in range(2, 1 + len(parts) >> 1)]
         self._affected_count = int(int(parts[0]) / len(self._matches))
 
+    def replace_matches(self, new_matches):
+        """
+        Clear all recuperated from the matches list
+        """
+        self._matches = new_matches
+
     def append(self, matched):
         """
         Append matches of the same key

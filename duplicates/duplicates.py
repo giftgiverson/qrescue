@@ -7,7 +7,7 @@ from os import remove
 from re import search as regex_match
 from hashlib import md5
 from my_env import rescued_file, data_file, data_backup
-from matches import encode_match, load_matches
+from matches import load_matches
 
 
 def _get_md5(path):
@@ -18,31 +18,30 @@ def _get_md5(path):
     return hash_md5.hexdigest()
 
 
-def _squash_duplicates_line(duplicates_file, mm_line, from_id):
-    if len(mm_line[3]) == 1\
-            or not any(match for match in mm_line[3] if int(mm_line[3][0][0]) >= from_id):
-        return mm_line[3]
+def _squash_duplicate(duplicates_file, matching, from_id):
+    if len(matching.matches) == 1\
+            or not any(match for match in matching.matches
+                       if int(matching.matches[0].id) >= from_id):
+        return matching
     unique = {}
-    for match in mm_line[3]:
-        path = rescued_file(match[0], match[1])
-        checksum = _get_md5(path)
+    for match in matching.matches:
+        checksum = _get_md5(match.path)
         if checksum in unique:
-            print('SAME MD5: ' + path + ' ' + str(unique[checksum]))
-            duplicates_file.write(path + ', ' + ', '.join(unique[checksum]) + '\n')
+            print('SAME MD5: ' + match.path + ' ' + str(unique[checksum]))
+            duplicates_file.write(match.path + ', ' + ', '.join(unique[checksum]) + '\n')
         else:
             unique[checksum] = match
-    return unique.values()
+    squashed = matching.clone()
+    squashed.replace_matches(unique.values())
+    return squashed
 
 
 def _squash_duplicates(multi_matched, from_id):
     with data_file('squashed_multi_matched.csv', 'w') as squashed_file:
         with data_file('duplicates.csv', 'w') as duplicates_file:
-            for mm_line in multi_matched:
-                unique = _squash_duplicates_line(duplicates_file, mm_line, from_id)
-                sq_line = list(mm_line)
-                sq_line[0] = int(mm_line[0] / len(mm_line[3])) * len(unique)
-                sq_line[3] = unique
-                squashed_file.write(encode_match(sq_line))
+            for matching in multi_matched:
+                unique = _squash_duplicate(duplicates_file, matching, from_id)
+                squashed_file.write(unique.serialize() + '\n')
 
 
 # duplicates, array of tuple(duplicate's path, base dir, base name)
