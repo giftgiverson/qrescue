@@ -20,6 +20,8 @@ class Recovery:
     def _make_keyed_files(self):
         keyed_files = {}
         for file in self._files:
+            if file.is_matched:
+                continue
             if file.key not in keyed_files:
                 keyed_files[file.key] = []
             keyed_files[file.key].append(file)

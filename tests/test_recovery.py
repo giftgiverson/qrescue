@@ -216,8 +216,7 @@ def test_recovery_class_keyed_files(recovery_testbed):
     """test correct keying of files in recovery class"""
     assert [[key] + [file.key for file in files]
             for key, files in recovery_testbed.keyed_files.items()] \
-           == [['jpg.10', 'jpg.10', 'jpg.10'], ['jpg.11', 'jpg.11'], ['jpg.12', 'jpg.12'],
-               ['jpg.13', 'jpg.13']]
+           == [['jpg.10', 'jpg.10', 'jpg.10'], ['jpg.11', 'jpg.11'], ['jpg.12', 'jpg.12']]
 
 
 # pylint: disable=redefined-outer-name
@@ -226,7 +225,7 @@ def test_recover_class_get_affected(recovery_testbed):
     recovery_testbed.assert_get_affected(MatchTestbed('jpg.10'), ['jpg.10', 'jpg.10'])
     recovery_testbed.assert_get_affected(MatchTestbed('jpg.11'), ['jpg.11'])
     recovery_testbed.assert_get_affected(MatchTestbed('jpg.12'), ['jpg.12'])
-    recovery_testbed.assert_get_affected(MatchTestbed('jpg.13'), ['jpg.13'])
+    recovery_testbed.assert_get_affected(MatchTestbed('jpg.13'), [])
 
 
 # pylint: disable=redefined-outer-name

@@ -75,7 +75,8 @@ class AffectedFile(FileBase):
 
     def __init__(self, str_serialization, folders):
         parts = str_serialization.split(',')
-        self._status, self._folder_key, self._extension = [part.strip() for part in parts[:3]]
+        self._status, self._folder_key, self._extension =\
+            [part.strip().lower() for part in parts[:3]]
         self._size = int(parts[3])
         self._key = '.'.join([self._extension, str(self._size)])
         self._modified_time = float(parts[4])

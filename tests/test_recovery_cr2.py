@@ -147,7 +147,7 @@ def test_cr2autohandler_class_handle_unmatched(mocker, matching_testbed, mocker_
                  side_effect=lambda mkey, _, ming: f'{mkey}|{ming}')
     with Cr2AutoHandlerTestbed() as target:
         target.call_handle_unmatched({0: -1, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4}, matching_testbed)
-    assert DataFile.written['manual_match'] ==\
+    assert DataFile.written['manual_match.csv'] ==\
            ['txt.10|['
             '(6, sugar.plum.txt, 5, 4), '
             '(5, sweetie.txt, 4, 3), '
@@ -163,8 +163,8 @@ def test_cr2autohandler_class_handle_removable(matching_testbed, mocker_data_fil
     DataFile.reset_static()
     with Cr2AutoHandlerTestbed() as target:
         target.call_handle_removable({0: -1, 1: 0, 2: -1, 3: 2, 4: 3, 5: 4}, matching_testbed)
-    assert DataFile.written['unmatched'] ==\
-           ['12, txt, 10, 2, Edward.txt, 3, Ted.txt, 5, sweetie.txt, 6, sugar.plum.txt\n']
+    assert DataFile.written['unmatched.csv'] ==\
+           ['12, txt, 10, 2, Edward.txt, 4, Eddie.Baby.txt, 5, sweetie.txt, 6, sugar.plum.txt\n']
 
 
 def test_cr2autohadle_class_process_matching(mocker, affected_testbed):

@@ -130,8 +130,8 @@ class Cr2AutoHandler:
         self._unmatched_file = None
 
     def __enter__(self):
-        self._manual_file = my_env.data_file('manual_match', 'a')
-        self._unmatched_file = my_env.data_file('unmatched', 'a')
+        self._manual_file = my_env.data_file('manual_match.csv', 'a')
+        self._unmatched_file = my_env.data_file('unmatched.csv', 'a')
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -185,7 +185,7 @@ class Cr2AutoHandler:
 
     def _handle_removable(self, match_affected, matching):
         removable = matching.clone()
-        for index, count in match_affected.items():
+        for index, count in sorted(match_affected.items(), key=lambda x: x[0], reverse=True):
             if count == -1:
                 del removable.matches[index]
         if len(removable.matches) > 0:
