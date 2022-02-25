@@ -49,7 +49,7 @@ def test_affected_file_class_init_properties(mocker):
     """test AffectedFiles construction and properties"""
     folders = make_folders()
     mocker.patch('my_env.nas_to_pc', side_effect=lambda x: x)
-    assert [(af.key, af.is_matched, af.size, af.extension, af.name, af.path.replace('\\', '/'),
+    assert [(af.key, not af.needs_match, af.size, af.extension, af.name, af.path.replace('\\', '/'),
              af.folder_key)
             for af in [AffectedFile(line, folders) for line in make_lines()]]\
            == [('jpg.117340', True, 117340, 'jpg', 'extras_icon.jpg', 'Naughtius/extras_icon.jpg',
@@ -77,7 +77,7 @@ def test_affected_files_class_apply_match(mocker):
         mocker_os_time = mocker.patch('os.utime')
         mocker_os_remove = mocker.patch('os.remove')
         target = AffectedFile(make_lines()[1], make_folders())
-        assert not target.is_matched
+        assert target.needs_match
         target.apply_match('joke.name.txt', 3)
         assert mocker_shutil_copy.call_count == 1
         assert mocker_shutil_copy.call_args_list[0][0][0] == 'joke.name.txt'
@@ -93,7 +93,7 @@ def test_affected_files_class_apply_match(mocker):
                    == 'Maximus/dune_folder.txt.7z'
         else:
             assert mocker_os_remove.call_count == 0
-        assert target.is_matched
+        assert not target.needs_match
 
 
 # pylint: disable=redefined-outer-name

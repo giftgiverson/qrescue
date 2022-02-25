@@ -16,7 +16,7 @@ class SingleHandler:
         if len(affected_list) != 1:
             print(f'EXPECTED SINGLE MATCH, FOUND: {affected_list}')
             return []
-        if affected_list[0].is_matched:
+        if not affected_list[0].needs_match:
             print(f'ALREADY RECOVERED: {affected_list[0]}')
             return []
         return [(affected_list[0], 0)]

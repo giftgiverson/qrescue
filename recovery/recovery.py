@@ -20,12 +20,34 @@ class Recovery:
     def _make_keyed_files(self):
         keyed_files = {}
         for file in self._files:
-            if file.is_matched:
+            if not file.needs_match:
                 continue
             if file.key not in keyed_files:
                 keyed_files[file.key] = []
             keyed_files[file.key].append(file)
         return keyed_files
+
+    def mark_unrecoverable(self):
+        """
+        Locate and mark affected files which cannot be recovered
+        """
+        matched = matches.load_matches('', True)
+        matchable_keys = {key: False for key, _ in self._keyed_files.items()}
+        for match in matched:
+            if match.key in matchable_keys:
+                matchable_keys[match.key] = True
+        new_keyed = {}
+        count = 0
+        for key, matchable in matchable_keys.items():
+            if matchable:
+                new_keyed[key] = self._keyed_files[key]
+                continue
+            for file in self._keyed_files[key]:
+                count += 1
+                file.mark_unmatchable()
+        print(f'DETECTED {count} UNMATCHABLE AFFECTED FILES (out of {len(self._files)})')
+        affected.update_files(self._files)
+        self._keyed_files = new_keyed
 
     def recover_single_matched(self, handler):
         """

@@ -39,11 +39,11 @@ class AffectedFile(FileBase):
     Affected file
     """
     @property
-    def is_matched(self):
+    def needs_match(self):
         """
         :return: (bool) is the file matched
         """
-        return self._status != '_'
+        return self._status == '_'
 
     @property
     def extension(self):
@@ -100,6 +100,10 @@ class AffectedFile(FileBase):
         else:
             os.remove(self._path + '.7z')
         self._status = str(submatch)
+
+    def mark_unmatchable(self):
+        """mark this file as unmatchable"""
+        self._status = 'X'
 
     def serialize(self):
         """

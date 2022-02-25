@@ -30,12 +30,13 @@ if __name__ == '__main__':
 
     recovery = Recovery()
     # === PHASE 3: Recovering single-matched files 'blindly'
+    # recovery.mark_unrecoverable()
     # recovery.recover_single_matched(SingleHandler())
 
     # === PHASE 4: Recovering multi-matched files interactively, by type
     # == 4.1 CR2
-    with Cr2AutoHandler() as handler:
-        recovery.recover_multi_matched(handler)
+    # with Cr2AutoHandler() as handler:
+    #     recovery.recover_multi_matched(handler)
     # pylint: disable=fixme
     # TODO
 
