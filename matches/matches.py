@@ -5,10 +5,11 @@ Handle rescued files
 import os
 import shutil
 import my_env
+from affected import FileBase
 from my_misc import static_vars
 
 
-class Recuperated:
+class Recuperated(FileBase):
     """
     Recuperated file
     """
@@ -20,23 +21,10 @@ class Recuperated:
         """
         return self._id
 
-    @property
-    def name(self):
-        """
-        :return: (string) file name
-        """
-        return self._name
-
-    @property
-    def path(self):
-        """
-        :return: (string) path to recuperated file
-        """
-        return self._path
-
     def __init__(self, detail):
-        self._id, self._name = detail
-        self._path = os.path.join(my_env.rescue_folder(self._id), self._name)
+        self._id, name = detail
+        path = os.path.join(my_env.rescue_folder(self._id), name)
+        super().__init__(name, path)
 
     def archive(self):
         """
@@ -62,6 +50,10 @@ class Recuperated:
         :return: (string) serialization
         """
         return ', '.join([self._id, self._name])
+
+    def __repr__(self):
+        """returns a string representation of this object"""
+        return self.serialize()
 
 
 class Matching:
@@ -138,6 +130,10 @@ class Matching:
         :return: Matching clone
         """
         return Matching(self.serialize())
+
+    def __repr__(self):
+        """returns a string representation of this object"""
+        return self.serialize()
 
 
 @static_vars(matches_by_type={})

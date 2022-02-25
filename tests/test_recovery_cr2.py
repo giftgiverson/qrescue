@@ -3,10 +3,13 @@ Tests for CR2 file handling
 """
 import os
 import pytest
+from mock import call
 
 import recovery.cr2
 import matches
 import affected
+# pylint: disable=unused-import
+from .helpers import DataFile, mocker_data_file
 
 
 @pytest.fixture()
@@ -119,3 +122,93 @@ def test_cr2autohandler_class_can_handle():
     cannot_handle = matches.Matching('18, txt, 10, 1, Sir.Edward.Ross.txt')
     assert recovery.cr2.Cr2AutoHandler.can_handle(can_handle)
     assert not recovery.cr2.Cr2AutoHandler.can_handle(cannot_handle)
+
+
+class Cr2AutoHandlerTestbed(recovery.cr2.Cr2AutoHandler):
+    """Cr2AutoHandler class testbed"""
+    def call_handle_unmatched(self, match_affected, matching):
+        """call protected method"""
+        self._handle_unmatched(match_affected, matching, None)
+
+    def call_handle_removable(self, match_affected, matching):
+        """call protected method"""
+        self._handle_removable(match_affected, matching)
+
+    def call_process_matching(self, affected_list, affected_match, match_affected):
+        """call protected method"""
+        return list(self._process_matching(None, affected_list, affected_match, match_affected))
+
+
+# pylint: disable=unused-argument
+def test_cr2autohandler_class_handle_unmatched(mocker, matching_testbed, mocker_data_file):
+    """test summary of unmatched files"""
+    DataFile.reset_static()
+    mocker.patch('recovery.cr2.serialize_unhandled',
+                 side_effect=lambda mkey, _, ming: f'{mkey}|{ming}')
+    with Cr2AutoHandlerTestbed() as target:
+        target.call_handle_unmatched({0: -1, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4}, matching_testbed)
+    assert DataFile.written['manual_match'] ==\
+           ['txt.10|['
+            '(6, sugar.plum.txt, 5, 4), '
+            '(5, sweetie.txt, 4, 3), '
+            '(4, Eddie.Baby.txt, 3, 2), '
+            '(3, Ted.txt, 2, 1), '
+            '(2, Edward.txt, 1, 0), '
+            '(1, Sir.Edward.Ross.txt, 0, -1)]']
+
+
+# pylint: disable=unused-argument
+def test_cr2autohandler_class_handle_removable(matching_testbed, mocker_data_file):
+    """test report of removable non-matching candidates"""
+    DataFile.reset_static()
+    with Cr2AutoHandlerTestbed() as target:
+        target.call_handle_removable({0: -1, 1: 0, 2: -1, 3: 2, 4: 3, 5: 4}, matching_testbed)
+    assert DataFile.written['unmatched'] ==\
+           ['12, txt, 10, 2, Edward.txt, 3, Ted.txt, 5, sweetie.txt, 6, sugar.plum.txt\n']
+
+
+def test_cr2autohadle_class_process_matching(mocker, affected_testbed):
+    """test processing of mathing after files are couple-tested by CR2/Folder dates"""
+    handle_unmatched = mocker.patch('recovery.cr2.Cr2AutoHandler._handle_unmatched')
+    handle_removable = mocker.patch('recovery.cr2.Cr2AutoHandler._handle_removable')
+    target = Cr2AutoHandlerTestbed()
+    assert str(target.call_process_matching(affected_testbed,
+                                            {0: [1], 1: [3]}, {0: 0, 1: 1, 2: 0, 3: 1}))\
+        .replace('\\', '/') ==\
+           '[(100.0/-2-Pussycat.txt [10], 1, True), (200.0/-0-Angel_drawers.jpg [10], 3, True)]'
+    assert handle_removable.called_with(call({0: 0, 1: -1, 2: 0, 3: -1}, None))
+    assert handle_unmatched.call_count == 0
+    assert not target.call_process_matching(affected_testbed,
+                                            {0: [1, 3], 1: []}, {0: 0, 1: 1, 2: 0, 3: 1})
+    assert handle_removable.call_count == 1
+    assert str(handle_unmatched.call_args).replace('\\', '/') ==\
+           'call({0: 0, 1: 1, 2: 0, 3: 1}, None,' \
+           ' [100.0/-2-Pussycat.txt [10], 200.0/-0-Angel_drawers.jpg [10]])'
+
+
+def test_cr2autohandler_handle(mocker, affected_testbed, matching_testbed):
+    """tests the main flow of handling CR2 matching affected files"""
+    match_index_and_cr2_timestamp = mocker.patch('recovery.cr2.match_index_and_cr2_timestamp',
+                                                 return_value='Frannie')
+    affected_index_and_cr2_limits = mocker.patch('recovery.cr2.affected_index_and_cr2_limits',
+                                                 return_value=[(1, [0, 1]), (3, [2, 3])])
+    affected_index_and_folder_limits = mocker.patch('recovery.cr2.affected_index_and_folder_limits',
+                                                    return_value=[(2, [1, 2])])
+    handle_couples = mocker.patch('recovery.cr2.handle_couples')
+    process_matching = mocker.patch('recovery.cr2.Cr2AutoHandler._process_matching',
+                                    return_value=['little', 'Frannie', 'pooh'])
+    target = recovery.cr2.Cr2AutoHandler()
+    assert target.handle(matching_testbed, affected_testbed) == ['little', 'Frannie', 'pooh']
+    assert match_index_and_cr2_timestamp.call_args == call(matching_testbed)
+    assert affected_index_and_cr2_limits.call_args == call(affected_testbed)
+    assert affected_index_and_folder_limits.call_args == call(affected_testbed,
+                                                              [(1, [0, 1]), (3, [2, 3])])
+    assert handle_couples.call_args ==\
+           call('Frannie',
+                [(1, [0, 1]), (3, [2, 3]), (2, [1, 2])],
+                {0: [], 1: [], 2: [], 3: []},
+                {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0})
+    assert process_matching.call_args ==\
+           call(matching_testbed, affected_testbed,
+                {0: [], 1: [], 2: [], 3: []},
+                {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0})

@@ -148,7 +148,7 @@ class Cr2AutoHandler:
             return []
         matched = match_index_and_cr2_timestamp(matching)
         neighborhood = affected_index_and_cr2_limits(affected_list)
-        neighborhood += affected_index_and_folder_limits(affected_list, neighborhood)
+        neighborhood += affected_index_and_folder_limits(affected_list, list(neighborhood))
         affected_match = {i: [] for i in range(0, len(affected_list))}
         match_affected = {i: 0 for i in range(0, len(matching.matches))}
         handle_couples(matched, neighborhood, affected_match, match_affected)

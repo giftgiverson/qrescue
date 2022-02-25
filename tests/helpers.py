@@ -67,6 +67,10 @@ class DataFile:
         return ''.join(DataFile.read_lines)
 
     @staticmethod
+    def close():
+        """mock closing the file"""
+
+    @staticmethod
     def reset_static(read=None):
         """reset static usage trackers"""
         DataFile.written = {}

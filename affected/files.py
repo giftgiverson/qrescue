@@ -12,8 +12,29 @@ import affected.folders
 AFFECTED_FILES_CSV = 'affected_files.csv'
 
 
+class FileBase:
+    """Base class for file classes"""
+    @property
+    def name(self):
+        """
+        :return: (string) file name
+        """
+        return self._name
+
+    @property
+    def path(self):
+        """
+        :return: (string) file path
+        """
+        return self._path
+
+    def __init__(self, name, path):
+        self._name = name
+        self._path = path
+
+
 # pylint: disable=too-many-instance-attributes
-class AffectedFile:
+class AffectedFile(FileBase):
     """
     Affected file
     """
@@ -23,10 +44,6 @@ class AffectedFile:
         :return: (bool) is the file matched
         """
         return self._status != '_'
-
-    # @property
-    # def folder(self):
-    #     return self._folder
 
     @property
     def extension(self):
@@ -50,20 +67,6 @@ class AffectedFile:
         return self._key
 
     @property
-    def name(self):
-        """
-        :return: (string) file name
-        """
-        return self._name
-
-    @property
-    def path(self):
-        """
-        :return: (string) file path
-        """
-        return self._path
-
-    @property
     def folder_key(self):
         """
         :return: (string) folder key
@@ -76,8 +79,9 @@ class AffectedFile:
         self._size = int(parts[3])
         self._key = '.'.join([self._extension, str(self._size)])
         self._modified_time = float(parts[4])
-        self._name = ','.join(parts[5:]).strip()
-        self._path = my_env.nas_to_pc(os.path.join(folders[self._folder_key].path, self._name))
+        name = ','.join(parts[5:]).strip()
+        path = my_env.nas_to_pc(os.path.join(folders[self._folder_key].path, name))
+        super().__init__(name, path)
 
     def apply_match(self, recovered_path, submatch):
         """
@@ -108,7 +112,7 @@ class AffectedFile:
         """
         :return: this class' representation
         """
-        return f'[{self._path} [{self._size}]'
+        return f'{self._path} [{self._size}]'
 
 
 @static_vars(files=[])
