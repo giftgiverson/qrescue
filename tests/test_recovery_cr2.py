@@ -61,6 +61,7 @@ def test_match_index_and_cr2_timestamp(mocker, matching_testbed):
     """tests getting CR2 timestamps for all matches in a Matching record"""
     mocker.patch('recovery.cr2.get_cr2_datetime_string',
                  side_effect=lambda x: '2006:06:09 00:50:5' + x.split('.')[0])
+    mocker.patch('os.path.exists', return_value=True)
     assert recovery.cr2.match_index_and_cr2_timestamp(matching_testbed) ==\
            [(0, 1149803451.0), (1, 1149803452.0), (2, 1149803453.0), (3, 1149803454.0),
             (4, 1149803455.0), (5, 1149803456.0)]

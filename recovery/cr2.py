@@ -3,6 +3,7 @@ Getting picture-taken date from CR2
 Based on:
  https://stackoverflow.com/questions/3696642/reading-a-cr2-raw-canon-image-header-using-python
 """
+import os.path
 import struct
 import datetime
 import time
@@ -50,7 +51,8 @@ def get_cr2_timestamp(path):
 
 def match_index_and_cr2_timestamp(matching):
     """return tuples of (match-index, CR2 timestamp)"""
-    return [(i, get_cr2_timestamp(match.path)) for i, match in enumerate(matching.matches)]
+    return [(i, get_cr2_timestamp(match.path))
+            for i, match in enumerate(matching.matches) if os.path.exists(match.path)]
 
 
 def affected_index_and_cr2_limits(affected_list):
