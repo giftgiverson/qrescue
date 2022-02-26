@@ -39,12 +39,22 @@ class Candidate(matches.Recuperated):
         """
         return self._match_count
 
+    @property
+    def manual_path(self):
+        """manual path"""
+        return  self._manual_path
+
+    @manual_path.setter
+    def manual_path(self, path):
+        self._manual_path = path
+
     def __init__(self, detail):
         super().__init__(detail[:2])
         self._submatch = int(detail[2])
         self._match_count = int(detail[3])
-        if self._submatch < 0:
+        if self._match_count < 0:
             self._path = my_env.rescued_to_archived(self._path)
+        self._manual_path = None
 
     def serialize(self):
         """make a list of the internal properties"""
@@ -164,7 +174,10 @@ class ManualSelection:
     def show_candidates(self):
         """Copy candidate files to manual folder"""
         for candidate in self._candidates:
-            my_env.copy_to_manual_folder_as(candidate.path, '.'.join([str(candidate), self._ext]))
+            candidate.manual_path =\
+                my_env.copy_to_manual_folder_as(
+                    candidate.path,
+                    '.'.join([str(candidate), self._ext]))
 
     def show_neighbors(self):
         """Copy neighboring files to manual folder"""
@@ -189,9 +202,10 @@ class ManualSelection:
             print(f'[{i}][{item.new_status if item.is_current else "!"}] {item.path}')
         print('----------\nCommand Options:')
         print('<i>:<j> - mark candidate item <i> as matching rescued item <j>')
+        print('<f>?<i> - run compare tool with candidate items <f> and <i>')
         print('Drop:<j> - mark rescued item <j> as dropped from matching')
         print('Reset - Remove manual matches')
-        print('End - Update and report manual matches')
+        print('Next - Update and report manual matches')
         print('Escape - Terminate manual process\n')
 
     def collect_decisions(self, affected_list):
@@ -203,12 +217,16 @@ class ManualSelection:
         return is_aborted, list(self._translate_matched(affected_list))
 
     def _interactive_match(self):
+        show_again = True
         while True:
-            self._show_summary()
+            if show_again:
+                self._show_summary()
+            else:
+                show_again = True
             command = input('> ').lower()
             if command.startswith('escape'):
                 return True
-            if command.startswith('end'):
+            if command.startswith('next'):
                 break
             if command.startswith('reset'):
                 for item in self._rescued:
@@ -223,6 +241,12 @@ class ManualSelection:
             if decision:
                 selected_candidate, selected_rescued = decision.groups()
                 self._rescued[int(selected_rescued)].new_status = selected_candidate
+                continue
+            comparison = re.search(r'(\d+)\?(\d+)', command)
+            if comparison:
+                path1, path2 = [self._candidates[int(i)].manual_path for i in comparison.groups()]
+                my_env.show_comparison(path1, path2)
+                show_again = False
                 continue
             print('Unable to handle command: ' + command)
         return False
@@ -304,3 +328,8 @@ class ManualHandler:
         selection.show_neighbors()
         self._aborted, decisions = selection.collect_decisions(affected_list)
         return decisions
+
+    @staticmethod
+    def get_type():
+        """return handler type"""
+        return 'Manual handler'

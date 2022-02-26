@@ -10,12 +10,14 @@ import time
 import glob
 import stat
 import re
+import subprocess
 
 DATA_FOLDER = 'w:/'
 RESCUE_FOLDER = 'f:/share'
 RESCUE_FOLDER_PREFIX = 'recup_dir'
 ARCHIVE_FOLDER = 'f:/archive'
 MANUAL_FOLDER = 'f:/manual'
+COMPARE_TOOL = r'C:\Program Files\Beyond Compare 4\BCompare.exe'
 
 NAS_TO_PC = {'./shaib/': 'z:/', './Multimedia/': 'y:/'}
 
@@ -171,9 +173,9 @@ def timestamp_from_name(name):
     :param name: name to parse
     :return: timestamp of the end (23:59:59) of the named day, or -1 if format isn't expected
     """
-    if not re.search(r'\d{4}_\d{2}_\d{2}', name):
+    if not re.search(r'\d{4}[_-]\d{2}[_-]\d{2}', name):
         return -1.0
-    f_date_time_dt = datetime.datetime.strptime(name, '%Y_%m_%d')
+    f_date_time_dt = datetime.datetime.strptime(name, '%Y_%m_%d' if '_' in name else '%Y-%m-%d')
     return time.mktime(f_date_time_dt.timetuple()) + 86400.0
 
 
@@ -191,7 +193,7 @@ def timestamps_from_names(names):
         from_date = timestamp_from_name(names[1])
         if from_date >= 0:
             return [from_date, to_date]
-    last_year = str(int(names[0].split('_')[0]) - 1)
+    last_year = str(int(names[0].split('_' if '_' in names[0] else '-')[0]) - 1)
     prev_year_end = '_'.join([last_year, '12', '31'])
     from_date = timestamp_from_name(prev_year_end)
     return [from_date, to_date]
@@ -208,5 +210,17 @@ def copy_to_manual_folder_as(path, new_name):
     Copies a file to the manual folder in a new name
     :param path: path to existing file
     :param new_name: the file's new name in the manual folder
+    :returns: path to manual-folder file
     """
-    shutil.copy(path, os.path.join(MANUAL_FOLDER, new_name))
+    new_path = os.path.join(MANUAL_FOLDER, new_name)
+    shutil.copy(path, new_path)
+    return new_path
+
+
+def show_comparison(path1, path2):
+    """
+    Run compare-tool for the specified paths, blocking
+    :param path1: first path
+    :param path2: second path
+    """
+    subprocess.call([COMPARE_TOOL, path1, path2])
