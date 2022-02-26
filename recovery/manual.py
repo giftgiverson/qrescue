@@ -8,7 +8,6 @@ import affected
 import matches
 from my_misc import static_vars
 
-
 RESCUED_OFFSET = 2
 RESCUED_PART_SIZE = 3
 CANDIDATE_PART_SIZE = 4
@@ -16,7 +15,8 @@ MANUAL_CSV = 'manual_match.csv'
 
 
 def _part_groups(parts, offset, part_size, part_count):
-    return [parts[n*part_size + offset:(n+1)*part_size + offset] for n in range(0, part_count)]
+    return [parts[n * part_size + offset:(n + 1) * part_size + offset] for n in
+            range(0, part_count)]
 
 
 def _part_groups_parse(maker, parts, offset, part_size, part_count):
@@ -25,6 +25,7 @@ def _part_groups_parse(maker, parts, offset, part_size, part_count):
 
 class Candidate(matches.Recuperated):
     """Recuperated wrapper for tracking manual recovery"""
+
     @property
     def submatch(self):
         """
@@ -54,6 +55,7 @@ class Candidate(matches.Recuperated):
 
 class Rescued(affected.AffectedFile):
     """AffectedFile wrapper for tracking manual recovery"""
+
     @property
     def status(self):
         """
@@ -116,6 +118,7 @@ class Rescued(affected.AffectedFile):
 
 class ManualSelection:
     """Manage a keyed manual selection"""
+
     @property
     def key(self):
         """
@@ -187,20 +190,23 @@ class ManualSelection:
         print('<i>:<j> - mark candidate item <i> as matching rescued item <j>')
         print('Drop:<j> - mark rescued item <j> as dropped from matching')
         print('Reset - Remove manual matches')
-        print('End - Update and report manual matches\n')
+        print('End - Update and report manual matches')
+        print('Escape - Terminate manual process\n')
 
     def collect_decisions(self, affected_list):
         """Collect manual decisions"""
         self._current_paths = [item.path for item in affected_list]
         for rescued in self._rescued:
             rescued.is_current = (rescued.path in self._current_paths)
-        self._interactive_match()
-        return list(self._translate_matched(affected_list))
+        is_aborted = self._interactive_match()
+        return is_aborted, list(self._translate_matched(affected_list))
 
     def _interactive_match(self):
         while True:
             self._show_summary()
             command = input('> ').lower()
+            if command.startswith('escape'):
+                return True
             if command.startswith('end'):
                 break
             if command.startswith('reset'):
@@ -218,6 +224,7 @@ class ManualSelection:
                 self._rescued[int(selected_rescued)].new_status = selected_candidate
                 continue
             print('Unable to handle command: ' + command)
+        return False
 
     def _handle_new_matched(self):
         rescued_by_candidate = {}
@@ -267,8 +274,10 @@ def update_manual(manual):
 
 class ManualHandler:
     """handle manual matches scanning"""
+
     def __init__(self):
         self._manual = None
+        self._aborted = False
 
     def __enter__(self):
         self._manual = load_manual(True)
@@ -279,7 +288,10 @@ class ManualHandler:
 
     def can_handle(self, match):
         """can handle manual matches"""
-        return match.key in self._manual and self._manual[match.key].can_match
+        return\
+            not self._aborted \
+            and match.key in self._manual \
+            and self._manual[match.key].can_match
 
     def handle(self, matching, affected_list):
         """handle manual match scanning"""
@@ -289,4 +301,5 @@ class ManualHandler:
         my_env.clear_manual_folder()
         selection.show_candidates()
         selection.show_neighbors()
-        return selection.collect_decisions(affected_list)
+        self._aborted, decisions = selection.collect_decisions(affected_list)
+        return decisions
