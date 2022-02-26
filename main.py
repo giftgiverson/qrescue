@@ -5,7 +5,7 @@ Entry point for QRescue automation
 from matches import update_matched_remove_unmatched, squash_matched
 from duplicates import update_and_remove_duplicates
 # pylint: disable=unused-import
-from recovery import Recovery, SingleHandler, Cr2AutoHandler
+from recovery import Recovery, SingleHandler, Cr2AutoHandler, ManualHandler
 
 
 def update(is_last=False):
@@ -41,6 +41,6 @@ if __name__ == '__main__':
     # TODO
 
     # === PHASE 5: Recovering manually-matched files
-    # pylint: disable=fixme
-    # TODO
+    with ManualHandler() as handler:
+        recovery.recover_multi_matched(handler)
     print('Done and done')

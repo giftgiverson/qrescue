@@ -1,7 +1,7 @@
 """
 Implement managing file access
 """
-
+import shutil
 from os.path import join as pjoin
 import os
 from re import search as regex_match
@@ -15,6 +15,7 @@ DATA_FOLDER = 'w:/'
 RESCUE_FOLDER = 'f:/share'
 RESCUE_FOLDER_PREFIX = 'recup_dir'
 ARCHIVE_FOLDER = 'f:/archive'
+MANUAL_FOLDER = 'f:/manual'
 
 NAS_TO_PC = {'./shaib/': 'z:/', './Multimedia/': 'y:/'}
 
@@ -161,3 +162,18 @@ def timestamps_from_names(names):
     prev_year_end = '_'.join([last_year, '12', '31'])
     from_date = timestamp_from_name(prev_year_end)
     return [from_date, to_date]
+
+
+def clear_manual_folder():
+    """Deletes all files currently in the manual folder"""
+    for file in os.listdir(MANUAL_FOLDER):
+        os.remove(os.path.join(MANUAL_FOLDER, file))
+
+
+def copy_to_manual_folder_as(path, new_name):
+    """
+    Copies a file to the manual folder in a new name
+    :param path: path to existing file
+    :param new_name: the file's new name in the manual folder
+    """
+    shutil.copy(path, os.path.join(MANUAL_FOLDER, new_name))
