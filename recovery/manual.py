@@ -25,7 +25,6 @@ def _part_groups_parse(maker, parts, offset, part_size, part_count):
 
 class Candidate(matches.Recuperated):
     """Recuperated wrapper for tracking manual recovery"""
-
     @property
     def submatch(self):
         """
@@ -44,6 +43,8 @@ class Candidate(matches.Recuperated):
         super().__init__(detail[:2])
         self._submatch = int(detail[2])
         self._match_count = int(detail[3])
+        if self._submatch < 0:
+            self._path = my_env.rescued_to_archived(self._path)
 
     def serialize(self):
         """make a list of the internal properties"""
@@ -163,13 +164,13 @@ class ManualSelection:
     def show_candidates(self):
         """Copy candidate files to manual folder"""
         for candidate in self._candidates:
-            '.'.join([my_env.copy_to_manual_folder_as(candidate.path, str(candidate)), self._ext])
+            my_env.copy_to_manual_folder_as(candidate.path, '.'.join([str(candidate), self._ext]))
 
     def show_neighbors(self):
         """Copy neighboring files to manual folder"""
         neighbors = {}
         for i, item in enumerate(self._rescued):
-            for neighbor in my_env.neighbor_modified_limits(item.path):
+            for neighbor in my_env.neighbor_names(item.path):
                 if neighbor not in neighbors:
                     neighbors[neighbor] = []
                 neighbors[neighbor].append(str(i))
@@ -182,10 +183,10 @@ class ManualSelection:
         """Present status and command options"""
         print('\n==========\nCandidates:')
         for item in self._candidates:
-            print(f'[{item.submatch if item.is_current else "!"}] [{item}]')
+            print(f'[{item.submatch}] [{item}]')
         print('----------\nRescued:')
         for i, item in enumerate(self._rescued):
-            print(f'[{i}][{item.new_status}] {item.path}')
+            print(f'[{i}][{item.new_status if item.is_current else "!"}] {item.path}')
         print('----------\nCommand Options:')
         print('<i>:<j> - mark candidate item <i> as matching rescued item <j>')
         print('Drop:<j> - mark rescued item <j> as dropped from matching')
@@ -239,7 +240,7 @@ class ManualSelection:
 
     def _translate_matched(self, affected_list):
         for match, submatch, archivable in self._handle_new_matched():
-            yield affected_list[self._current_paths.index(match.path)], submatch, archivable
+            yield affected_list[self._current_paths.index(match.path)], int(submatch), archivable
 
 
 @static_vars(manual={})

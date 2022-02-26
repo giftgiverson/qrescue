@@ -97,6 +97,39 @@ def archive_folder(recup_id):
     return pjoin(ARCHIVE_FOLDER, '.'.join([RESCUE_FOLDER_PREFIX, recup_id]))
 
 
+def rescued_to_archived(path):
+    """
+    Translates rescued path to archived path
+    :param path: rescued path
+    :return: archived path
+    """
+    return path.replace(RESCUE_FOLDER, ARCHIVE_FOLDER)
+
+
+def neighbor_names(file_path):
+    """
+    Return the paths of the previous and next named files the path's directory
+     having the same extension
+    :param file_path: search target
+    :return: previous neighbor, next neighbor
+            [only one returned if one found, and non returned if none found]
+    """
+    pattern = '*.' + file_path.split('.')[-1]
+    files = glob.glob(os.path.join(os.path.dirname(file_path), pattern))
+    if files:
+        if len(files) > 1:
+            files.append(file_path)
+            sorted_files = sorted(files, key=os.path.basename)
+            old_pos = sorted_files.index(file_path)
+            if old_pos == 0:
+                return [sorted_files[1]]
+            if old_pos == len(sorted_files) - 1:
+                return [sorted_files[-2]]
+            return [sorted_files[old_pos-1], sorted_files[old_pos+1]]
+        return [files[0]]
+    return []
+
+
 def neighbor_modified_limits(file_path):
     """
     Return the paths of the first and last modified file in the path's directory

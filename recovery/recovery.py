@@ -66,21 +66,23 @@ class Recovery:
     def _recover_matched(self, handler, matched):
         last_folder = 0
         recovered = 0
-        with my_env.data_file('recovered.csv', 'a') as recovered_log:
-            for match in matched:
-                cur_folder = match.matches[0].id
-                if last_folder != cur_folder:
-                    last_folder = cur_folder
-                    print(last_folder)
-                if handler.can_handle(match):
-                    for affected_file, submatch, archivable\
-                            in handler.handle(match, self._get_affected(match)):
-                        if self._recover(affected_file, match, submatch, recovered_log):
-                            recovered += 1
-                            if archivable:
-                                match.matches[submatch].archive()
-        affected.update_files(self._files)
-        print(f'RECOVERED {recovered} Matched {handler.get_type()}')
+        try:
+            with my_env.data_file('recovered.csv', 'a') as recovered_log:
+                for match in matched:
+                    cur_folder = match.matches[0].id
+                    if last_folder != cur_folder:
+                        last_folder = cur_folder
+                        print(last_folder)
+                    if handler.can_handle(match):
+                        for affected_file, submatch, archivable\
+                                in handler.handle(match, self._get_affected(match)):
+                            if self._recover(affected_file, match, submatch, recovered_log):
+                                recovered += 1
+                                if archivable:
+                                    match.matches[submatch].archive()
+        finally:
+            affected.update_files(self._files)
+            print(f'RECOVERED {recovered} Matched {handler.get_type()}')
 
     def _get_affected(self, match):
         key = match.key

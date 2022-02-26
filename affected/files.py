@@ -41,7 +41,7 @@ class AffectedFile(FileBase):
     @property
     def needs_match(self):
         """
-        :return: (bool) is the file matched
+        :return: (bool) does the file need a match
         """
         return self._status == '_'
 
