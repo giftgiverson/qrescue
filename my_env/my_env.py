@@ -19,7 +19,7 @@ ARCHIVE_FOLDER = 'f:/archive'
 MANUAL_FOLDER = 'f:/manual'
 COMPARE_TOOL = r'C:\Program Files\Beyond Compare 4\BCompare.exe'
 
-NAS_TO_PC = {'./shaib/': 'z:/', './Multimedia/': 'y:/'}
+NAS_TO_PC = {'./shaib/Archive/Negatives/': 'w:/Archive/Negatives/', './shaib/': 'z:/', './Multimedia/': 'y:/'}
 
 
 def rescue_folder(f_id):

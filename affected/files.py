@@ -80,7 +80,7 @@ class AffectedFile(FileBase):
         self._size = int(parts[3])
         self._key = '.'.join([self._extension, str(self._size)])
         self._modified_time = float(parts[4])
-        name = ','.join(parts[5:]).strip()
+        name = ','.join(parts[5:]).strip().replace(':', ',')
         path = my_env.nas_to_pc(os.path.join(folders[self._folder_key].path, name))
         super().__init__(name, path)
 
@@ -111,7 +111,7 @@ class AffectedFile(FileBase):
         :return: (string) CSV line (without newline)
         """
         return ', '.join([self._status, self._folder_key, self._extension, str(self._size),
-                         str(self._modified_time), self._name])
+                         str(self._modified_time), self._name.replace(',', ':')])
 
     def __repr__(self):
         """

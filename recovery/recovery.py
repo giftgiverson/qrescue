@@ -20,7 +20,7 @@ class Recovery:
     def _make_keyed_files(self):
         keyed_files = {}
         for file in self._files:
-            if not file.needs_match:
+            if not file.needs_match or not os.path.exists(os.path.dirname(file.path)):
                 continue
             if file.key not in keyed_files:
                 keyed_files[file.key] = []
@@ -76,9 +76,10 @@ class Recovery:
                     if handler.can_handle(match):
                         for affected_file, submatch, archivable\
                                 in handler.handle(match, self._get_affected(match)):
-                            if self._recover(affected_file, match, submatch, recovered_log):
+                            in_archive, path = self._recover(affected_file, match, submatch, recovered_log)
+                            if path:
                                 recovered += 1
-                                if archivable:
+                                if archivable and not in_archive:
                                     match.matches[submatch].archive()
         finally:
             affected.update_files(self._files)
@@ -89,16 +90,21 @@ class Recovery:
         return self._keyed_files[key] if key in self._keyed_files else []
 
     def _recover(self, affected_file, match, submatch, recovered_log):
-        match_path = self._make_path(affected_file, match, submatch)
+        in_archive, match_path = self._make_path(affected_file, match, submatch)
         if match_path:
             affected_file.apply_match(match_path, submatch)
         recovered_log.write(affected_file.serialize() + '\n')
-        return match_path
+        return in_archive, match_path
 
     @staticmethod
     def _make_path(affected_file, match, submatch):
         match_path = match.matches[submatch].path
         if not os.path.exists(match_path):
+            archived_path = my_env.rescued_to_archived(match_path)
+            if not os.path.exists(archived_path):
+                print(f'WARNING: MATCH FILE NOT FOUND IN RESCUE OR ARCHIVE: {match_path},'
+                      f' for {affected_file}')
+                return False, None
             print(f'WARNING: MATCH FILE ALREADY ARCHIVED: {match_path}, for {affected_file}')
-            return None
-        return match_path
+            return True, archived_path
+        return False, match_path

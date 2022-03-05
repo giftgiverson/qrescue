@@ -3,9 +3,11 @@ Implement interactive manual matching
 """
 import os.path
 import re
+import eyed3
 import my_env
 import affected
 import matches
+import duplicates
 from my_misc import static_vars
 
 RESCUED_OFFSET = 2
@@ -21,6 +23,25 @@ def _part_groups(parts, offset, part_size, part_count):
 
 def _part_groups_parse(maker, parts, offset, part_size, part_count):
     return [maker(part) for part in _part_groups(parts, offset, part_size, part_count)]
+
+
+def _md5_distinct(targets):
+    md5_index = {}
+    for i, target in enumerate(targets):
+        path = target.path if os.path.exists(target.path) else (target.path + '.7z')
+        md5 = duplicates.get_md5(path)
+        if md5 not in md5_index:
+            md5_index[md5] = i
+    return list(md5_index.values())
+
+
+def _base_name_distinct(targets):
+    base_name_index = {}
+    for i, target in enumerate(targets):
+        base_name = os.path.basename(target.path)
+        if base_name not in base_name_index:
+            base_name_index[base_name] = i
+    return list(base_name_index.values())
 
 
 class Candidate(matches.Recuperated):
@@ -52,7 +73,7 @@ class Candidate(matches.Recuperated):
         super().__init__(detail[:2])
         self._submatch = int(detail[2])
         self._match_count = int(detail[3])
-        if self._match_count < 0:
+        if self._match_count <= 0 and not os.path.exists(self._path):
             self._path = my_env.rescued_to_archived(self._path)
         self._manual_path = None
 
@@ -115,7 +136,8 @@ class Rescued(affected.AffectedFile):
         return re.match(r'^\d+$', self._status)
 
     def __init__(self, detail, ext, folders):
-        super().__init__(', '.join(detail[:2] + [ext, '0', '0', detail[2]]), folders)
+        super().__init__(', '.join(detail[:2] + [ext, '0', '0', detail[2]]),
+                         folders)
         self._new_status = self.status
         self._current = False
 
@@ -157,6 +179,8 @@ class ManualSelection:
         match_count = int(parts[match_offset - 1])
         self._candidates = _part_groups_parse(
             Candidate, parts, match_offset, CANDIDATE_PART_SIZE, match_count)
+        self._distinct_candidates = []
+        self._distinct_rescued = []
         self._current_paths = []
 
     def serialize(self):
@@ -173,7 +197,10 @@ class ManualSelection:
 
     def show_candidates(self):
         """Copy candidate files to manual folder"""
-        for candidate in self._candidates:
+        if not self._distinct_candidates:
+            self._distinct_candidates = _md5_distinct(self._candidates)
+        for i in self._distinct_candidates:
+            candidate = self._candidates[i]
             candidate.manual_path =\
                 my_env.copy_to_manual_folder_as(
                     candidate.path,
@@ -182,6 +209,7 @@ class ManualSelection:
     def show_neighbors(self):
         """Copy neighboring files to manual folder"""
         neighbors = {}
+        self._distinct_rescued = _base_name_distinct(self._rescued)
         for i, item in enumerate(self._rescued):
             for neighbor in my_env.neighbor_names(item.path):
                 if neighbor not in neighbors:
@@ -195,18 +223,19 @@ class ManualSelection:
     def _show_summary(self):
         """Present status and command options"""
         print('\n==========\nCandidates:')
-        for item in self._candidates:
+        for i in self._distinct_candidates:
+            item = self._candidates[i]
             print(f'[{item.submatch}] [{item}]')
         print('----------\nRescued:')
         for i, item in enumerate(self._rescued):
             print(f'[{i}][{item.new_status if item.is_current else "!"}] {item.path}')
         print('----------\nCommand Options:')
-        print('<i>:<j> - mark candidate item <i> as matching rescued item <j>')
-        print('<f>?<i> - run compare tool with candidate items <f> and <i>')
-        print('Drop:<j> - mark rescued item <j> as dropped from matching')
-        print('Reset - Remove manual matches')
-        print('Next - Update and report manual matches')
-        print('Escape - Terminate manual process\n')
+        print('<i>=<j> - mark candidate item <i> as matching rescued item <j>')
+        print('<f>-<i> - run compare tool with candidate items <f> and <i>')
+        print('(D)rop:<j> - mark rescued item <j> as dropped from matching')
+        print('E(x)clude - mark all rescued items as excluded from matching')
+        print('(S)kip - Skip this matching')
+        print('(E)scape - Terminate manual process\n')
 
     def collect_decisions(self, affected_list):
         """Collect manual decisions"""
@@ -217,32 +246,37 @@ class ManualSelection:
         return is_aborted, list(self._translate_matched(affected_list))
 
     def _interactive_match(self):
+        self._distinct_match()
+        # self._world_history_match()
         show_again = True
         while True:
+            if all(rescued.new_status != '_' for rescued in self._rescued):
+                break
             if show_again:
                 self._show_summary()
             else:
                 show_again = True
             command = input('> ').lower()
-            if command.startswith('escape'):
+            if command.startswith('e'):
                 return True
-            if command.startswith('next'):
+            if command.startswith('s'):
                 break
-            if command.startswith('reset'):
+            exclude = re.search(r'(e)?x(clude)?', command)
+            if exclude:
                 for item in self._rescued:
-                    item.new_status = -1
+                    item.new_status = 'X'
                 continue
-            drop = re.search(r'drop:(\d+)', command)
+            drop = re.search(r'd(rop)?:(\d+)', command)
             if drop:
-                selected_rescued = int(drop.groups()[0])
+                selected_rescued = int(drop.groups()[1])
                 self._rescued[selected_rescued].new_status = 'D'
                 continue
-            decision = re.search(r'(\d+):(\d+)', command)
+            decision = re.search(r'(\d+)=(\d+)', command)
             if decision:
                 selected_candidate, selected_rescued = decision.groups()
                 self._rescued[int(selected_rescued)].new_status = selected_candidate
                 continue
-            comparison = re.search(r'(\d+)\?(\d+)', command)
+            comparison = re.search(r'(\d+)-(\d+)', command)
             if comparison:
                 path1, path2 = [self._candidates[int(i)].manual_path for i in comparison.groups()]
                 my_env.show_comparison(path1, path2)
@@ -250,6 +284,22 @@ class ManualSelection:
                 continue
             print('Unable to handle command: ' + command)
         return False
+
+    def _distinct_match(self):
+        if len(self._distinct_candidates) == 1 and len(self._distinct_rescued) == 1:
+            for item in self._rescued:
+                item.new_status = \
+                    str(self._candidates[self._distinct_candidates[0]].submatch)
+
+    # def _world_history_match(self):
+    #     if all('_world_history.mp3' in os.path.basename(item.path).lower() for item in self._rescued):
+    #         rescued_by_track = {os.path.basename(item.path).split('_')[0]: item
+    #                             for item in self._rescued}
+    #         for candidate in self._candidates:
+    #             audio = eyed3.load(candidate.path)
+    #             track = audio.tag.title.strip()
+    #             if track in rescued_by_track:
+    #                 rescued_by_track[track].new_status = str(candidate.submatch)
 
     def _handle_new_matched(self):
         rescued_by_candidate = {}

@@ -10,7 +10,7 @@ from my_env import rescued_file, data_file, data_backup
 from matches import load_matches
 
 
-def _get_md5(path):
+def get_md5(path):
     hash_md5 = md5()
     with open(path, "rb") as file:
         for chunk in iter(lambda: file.read(4096), b""):
@@ -25,7 +25,7 @@ def _squash_duplicate(duplicates_file, matching, from_id):
         return matching
     unique = {}
     for match in matching.matches:
-        checksum = _get_md5(match.path)
+        checksum = get_md5(match.path)
         if checksum in unique:
             print('SAME MD5: ' + match.path + ' ' + str(unique[checksum]))
             duplicates_file.write(match.path + ', ' + ', '.join(unique[checksum]) + '\n')
