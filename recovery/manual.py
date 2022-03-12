@@ -136,6 +136,7 @@ class Rescued(affected.AffectedFile):
         return re.match(r'^\d+$', self._status)
 
     def __init__(self, detail, ext, folders):
+        print(detail)
         super().__init__(', '.join(detail[:2] + [ext, '0', '0', detail[2]]),
                          folders)
         self._new_status = self.status
@@ -248,6 +249,7 @@ class ManualSelection:
     def _interactive_match(self):
         self._distinct_match()
         # self._world_history_match()
+        # return False
         show_again = True
         while True:
             if all(rescued.new_status != '_' for rescued in self._rescued):

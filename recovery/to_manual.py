@@ -9,7 +9,7 @@ class ToManualAutoHandler(recovery.timestamp.TimestampAutoHandler):
     @staticmethod
     def can_handle(match):
         """can handle CR2 matches"""
-        return any(match.key.startswith(ext) for ext in ['m4a', 'mov', 'mp3', 'pdf'])
+        return True # any(match.key.startswith(ext) for ext in ['m4a', 'mov', 'mp3', 'pdf'])
 
     def _get_timestamp(self, path):
         """returns non-matching timestamps"""

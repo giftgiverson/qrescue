@@ -4,6 +4,7 @@ Entry point for QRescue automation
 
 from matches import update_matched_remove_unmatched, squash_matched
 from duplicates import update_and_remove_duplicates
+import my_pictures
 # pylint: disable=unused-import
 from recovery import Recovery, SingleHandler, Cr2AutoHandler, ManualHandler, ExifAutoHandler,\
     ToManualAutoHandler
@@ -29,7 +30,7 @@ if __name__ == '__main__':
     # Use if PhotoRec has finished running
     # update(True)
 
-    recovery = Recovery()
+    # recovery = Recovery()
     # === PHASE 3: Recovering single-matched files 'blindly'
     # recovery.mark_unrecoverable()
     # recovery.recover_single_matched(SingleHandler())
@@ -48,6 +49,7 @@ if __name__ == '__main__':
     # TODO
 
     # === PHASE 5: Recovering manually-matched files
-    with ManualHandler() as handler:
-        recovery.recover_multi_matched(handler)
+    # with ManualHandler() as handler:
+    #     recovery.recover_multi_matched(handler)
+    my_pictures.collect()
     print('Done and done')
